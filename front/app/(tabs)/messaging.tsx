@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MobileHeader } from '@/components/MobileHeader';
+import { useTranslation } from 'react-i18next';
 
 type Conversation = {
   id: number;
@@ -27,6 +27,7 @@ type Message = {
 export default function MessagingScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const { t } = useTranslation('messaging');
 
   const [selectedChat, setSelectedChat] = useState<number>(1);
   const [newMessage, setNewMessage] = useState<string>('');
@@ -57,13 +58,12 @@ export default function MessagingScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <MobileHeader />
       <ThemedView style={{ borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, backgroundColor: theme.slateCard, overflow: 'hidden', margin: 12 }}>
       <View style={{ flexDirection: 'row', height: '100%' }}>
         <View style={{ width: '100%', maxWidth: 380, borderRightWidth: 1, borderColor: theme.slateBorder }}>
           <View style={{ padding: 12, borderBottomWidth: 1, borderColor: theme.slateBorder }}>
             <TextInput
-              placeholder="Rechercher..."
+              placeholder={t('search')}
               placeholderTextColor="#9CA3AF"
               style={{ backgroundColor: 'rgba(51,65,85,0.5)', borderWidth: 1, borderColor: theme.slateBorder, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: theme.text }}
             />

@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import i18n from '@/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export function MobileHeader() {
   const colorScheme = useColorScheme() ?? 'dark';
   const theme = Colors[colorScheme];
+  const [current] = useState(i18n.language);
 
   return (
     <View style={{
@@ -39,11 +42,13 @@ export function MobileHeader() {
               <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>3</Text>
             </View>
           </View>
+          <LanguageSwitcher />
           <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(147,51,234,0.5)', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: 'white', fontWeight: '700' }}>G</Text>
           </View>
         </View>
       </View>
+      
     </View>
   );
 }

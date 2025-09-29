@@ -1,0 +1,26 @@
+{
+    "title": "Orders management",
+    "subtitle": "Track and manage all your orders",
+    "tabs": {
+        "all": "All",
+        "purchases": "Purchases",
+        "sales": "Sales"
+    },
+    "status": {
+        "pending": "Pending",
+        "in-progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+    },
+    "actions": {
+        "details": "Details",
+        "message": "Message",
+        "markDone": "Mark done",
+        "leaveReview": "Leave a review"
+    },
+    "labels": {
+        "provider": "Provider",
+        "client": "Client",
+        "delivery": "Delivery"
+    }
+}

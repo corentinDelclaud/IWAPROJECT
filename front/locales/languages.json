@@ -1,0 +1,26 @@
+{
+    "supportedLngs": [
+        "en",
+        "fr",
+        "de"
+    ],
+    "defaultLng": "en",
+    "labels": {
+        "en": "English",
+        "fr": "Français",
+        "de": "Deutsch"
+    },
+    "flagNameByLng": {
+        "en": "united-kingdom",
+        "fr": "france",
+        "de": "germany"
+    },
+    "namespaces": [
+        "common",
+        "marketplace",
+        "messaging",
+        "orders",
+        "profile",
+        "modal"
+    ]
+}

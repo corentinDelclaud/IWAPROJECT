@@ -1,0 +1,26 @@
+{
+    "title": "Gestion des Commandes",
+    "subtitle": "Suivez et gérez toutes vos commandes",
+    "tabs": {
+        "all": "Toutes",
+        "purchases": "Achats",
+        "sales": "Ventes"
+    },
+    "status": {
+        "pending": "En attente",
+        "in-progress": "En cours",
+        "completed": "Terminé",
+        "cancelled": "Annulé"
+    },
+    "actions": {
+        "details": "Détails",
+        "message": "Message",
+        "markDone": "Marquer terminé",
+        "leaveReview": "Laisser un avis"
+    },
+    "labels": {
+        "provider": "Prestataire",
+        "client": "Client",
+        "delivery": "Livraison"
+    }
+}

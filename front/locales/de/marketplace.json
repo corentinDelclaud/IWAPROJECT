@@ -1,0 +1,27 @@
+{
+    "title": "Gaming-Marktplatz",
+    "subtitle": "Finde den perfekten Service für dein Spiel",
+    "search": "Nach einem Service suchen...",
+    "games": {
+        "all": "Alle Spiele",
+        "lol": "League of Legends",
+        "valorant": "Valorant",
+        "cs2": "Counter-Strike 2",
+        "fortnite": "Fortnite",
+        "apex": "Apex Legends"
+    },
+    "categories": {
+        "all": "Alle Kategorien",
+        "coaching": "Coaching",
+        "boost": "Rang-Boost",
+        "carry": "Carry",
+        "account": "Konten",
+        "items": "Items/Skins"
+    },
+    "service": {
+        "by": "von {{provider}}",
+        "rating": "★ {{rating}} ({{count}})",
+        "view": "Ansehen",
+        "delivery": "{{time}}"
+    }
+}

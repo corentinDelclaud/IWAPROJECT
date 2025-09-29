@@ -1,0 +1,34 @@
+{
+    "tabs": {
+        "profile": "Profile",
+        "history": "History",
+        "notifications": "Notifications",
+        "settings": "Settings"
+    },
+    "header": {
+        "memberSince": "Member since {{date}}",
+        "rating": "★ {{rating}} ({{count}} reviews)",
+        "certified": "🏆 Certified Coach"
+    },
+    "stats": {
+        "sold": "Services sold",
+        "bought": "Services bought",
+        "averageRating": "Average rating",
+        "revenue": "Total revenue"
+    },
+    "sections": {
+        "personal": "Personal info",
+        "skills": "Specializations",
+        "ordersHistory": "Orders history",
+        "accountSettings": "Account settings",
+        "settingsWip": "Settings section under construction..."
+    },
+    "actions": {
+        "editProfile": "Edit profile"
+    },
+    "labels": {
+        "email": "Email",
+        "phone": "Phone",
+        "location": "Location"
+    }
+}

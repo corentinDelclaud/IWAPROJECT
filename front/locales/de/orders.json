@@ -1,0 +1,26 @@
+{
+    "title": "Bestellungen verwalten",
+    "subtitle": "Verfolge und verwalte alle deine Bestellungen",
+    "tabs": {
+        "all": "Alle",
+        "purchases": "Einkäufe",
+        "sales": "Verkäufe"
+    },
+    "status": {
+        "pending": "Ausstehend",
+        "in-progress": "In Arbeit",
+        "completed": "Abgeschlossen",
+        "cancelled": "Storniert"
+    },
+    "actions": {
+        "details": "Details",
+        "message": "Nachricht",
+        "markDone": "Als erledigt markieren",
+        "leaveReview": "Bewertung abgeben"
+    },
+    "labels": {
+        "provider": "Anbieter",
+        "client": "Kunde",
+        "delivery": "Lieferung"
+    }
+}

@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MobileHeader } from '@/components/MobileHeader';
+import { useTranslation } from 'react-i18next';
 
 type Order = {
   id: string;
@@ -23,6 +23,7 @@ type Order = {
 export default function OrdersScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const { t } = useTranslation('orders');
   const [activeTab, setActiveTab] = useState<'all' | 'purchases' | 'sales'>('all');
 
   const orders: Order[] = [
@@ -40,10 +41,10 @@ export default function OrdersScreen() {
 
   const getStatusChip = (status: Order['status']) => {
     const map = {
-      pending: { text: 'En attente', color: 'rgba(250,204,21,0.15)', fg: '#f59e0b' },
-      'in-progress': { text: 'En cours', color: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
-      completed: { text: 'Terminé', color: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
-      cancelled: { text: 'Annulé', color: 'rgba(239,68,68,0.15)', fg: '#ef4444' },
+      pending: { text: t('status.pending'), color: 'rgba(250,204,21,0.15)', fg: '#f59e0b' },
+      'in-progress': { text: t('status.in-progress'), color: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
+      completed: { text: t('status.completed'), color: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
+      cancelled: { text: t('status.cancelled'), color: 'rgba(239,68,68,0.15)', fg: '#ef4444' },
     } as const;
     const s = map[status];
     return (
@@ -55,19 +56,18 @@ export default function OrdersScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <MobileHeader />
       <ThemedView style={{ padding: 16, gap: 16 }}>
       <View style={{ backgroundColor: theme.slateCard, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: theme.slateBorder }}>
-        <ThemedText type="title">Gestion des Commandes</ThemedText>
-        <ThemedText style={{ color: '#9CA3AF', marginTop: 4 }}>Suivez et gérez toutes vos commandes</ThemedText>
+        <ThemedText type="title">{t('title')}</ThemedText>
+        <ThemedText style={{ color: '#9CA3AF', marginTop: 4 }}>{t('subtitle')}</ThemedText>
       </View>
 
       <View style={{ backgroundColor: theme.slateCard, borderRadius: 12, borderWidth: 1, borderColor: theme.slateBorder, padding: 8 }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {[
-            { id: 'all', label: 'Toutes', count: orders.length },
-            { id: 'purchases', label: 'Achats', count: orders.filter(o => o.type === 'purchase').length },
-            { id: 'sales', label: 'Ventes', count: orders.filter(o => o.type === 'sale').length },
+            { id: 'all', label: t('tabs.all'), count: orders.length },
+            { id: 'purchases', label: t('tabs.purchases'), count: orders.filter(o => o.type === 'purchase').length },
+            { id: 'sales', label: t('tabs.sales'), count: orders.filter(o => o.type === 'sale').length },
           ].map((tab) => (
             <Pressable
               key={tab.id}
@@ -103,7 +103,7 @@ export default function OrdersScreen() {
               <View>
                 <Text style={{ color: theme.text, fontWeight: '600', fontSize: 16 }}>{item.service}</Text>
                 <Text style={{ color: '#9CA3AF', marginTop: 2, fontSize: 12 }}>
-                  {item.type === 'purchase' ? `Prestataire: ${item.provider}` : `Client: ${item.client}`} • #{item.id}
+                  {item.type === 'purchase' ? `${t('labels.provider')}: ${item.provider}` : `${t('labels.client')}: ${item.client}`} • #{item.id}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
@@ -116,7 +116,7 @@ export default function OrdersScreen() {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               {getStatusChip(item.status)}
-              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Livraison: {item.deliveryDate}</Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{t('labels.delivery')}: {item.deliveryDate}</Text>
               {item.rating && (
                 <Text style={{ color: '#FBBF24', fontSize: 12 }}>{'★'.repeat(item.rating)}</Text>
               )}
@@ -124,19 +124,19 @@ export default function OrdersScreen() {
 
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
               <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: 'rgba(71,85,105,0.5)', borderRadius: 10, borderWidth: 1, borderColor: theme.slateBorder }}>
-                <Text style={{ color: theme.text }}>Détails</Text>
+                <Text style={{ color: theme.text }}>{t('actions.details')}</Text>
               </Pressable>
               <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: 'rgba(147,51,234,0.2)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' }}>
-                <Text style={{ color: '#C4B5FD' }}>Message</Text>
+                <Text style={{ color: '#C4B5FD' }}>{t('actions.message')}</Text>
               </Pressable>
               {item.status === 'in-progress' && (
                 <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#16a34a', borderRadius: 10 }}>
-                  <Text style={{ color: 'white' }}>Marquer terminé</Text>
+                  <Text style={{ color: 'white' }}>{t('actions.markDone')}</Text>
                 </Pressable>
               )}
               {item.status === 'completed' && !item.rating && item.type === 'purchase' && (
                 <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#f59e0b', borderRadius: 10 }}>
-                  <Text style={{ color: 'white' }}>Laisser un avis</Text>
+                  <Text style={{ color: 'white' }}>{t('actions.leaveReview')}</Text>
                 </Pressable>
               )}
             </View>

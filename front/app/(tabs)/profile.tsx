@@ -4,20 +4,21 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MobileHeader } from '@/components/MobileHeader';
+import { useTranslation } from 'react-i18next';
 
 type Section = 'profile' | 'history' | 'notifications' | 'settings';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const { t } = useTranslation('profile');
   const [activeSection, setActiveSection] = useState<Section>('profile');
 
   const userStats = [
-    { label: 'Services vendus', value: '47', change: '+12%', color: '#22c55e' },
-    { label: 'Services achetés', value: '23', change: '+5%', color: '#3b82f6' },
-    { label: 'Note moyenne', value: '4.8', change: '+0.2', color: '#f59e0b' },
-    { label: 'Revenus totaux', value: '1,240€', change: '+25%', color: '#8b5cf6' },
+    { label: t('stats.sold'), value: '47', change: '+12%', color: '#22c55e' },
+    { label: t('stats.bought'), value: '23', change: '+5%', color: '#3b82f6' },
+    { label: t('stats.averageRating'), value: '4.8', change: '+0.2', color: '#f59e0b' },
+    { label: t('stats.revenue'), value: '1,240€', change: '+25%', color: '#8b5cf6' },
   ];
 
   const orderHistory = [
@@ -28,10 +29,10 @@ export default function ProfileScreen() {
   ];
 
   const notifications = [
-    { type: 'order', message: 'Nouvelle commande reçue', time: '2 min', unread: true },
-    { type: 'review', message: 'Nouvel avis 5★ reçu', time: '1h', unread: true },
-    { type: 'payment', message: 'Paiement reçu: 30€', time: '3h', unread: false },
-    { type: 'system', message: 'Mise à jour des conditions', time: '1j', unread: false },
+    { type: 'order', message: 'New order received', time: '2 min', unread: true },
+    { type: 'review', message: 'New 5★ review', time: '1h', unread: true },
+    { type: 'payment', message: 'Payment received: 30€', time: '3h', unread: false },
+    { type: 'system', message: 'Terms updated', time: '1d', unread: false },
   ];
 
   const StatusPill = ({ status }: { status: string }) => {
@@ -54,10 +55,10 @@ export default function ProfileScreen() {
         
         <View style={{ flex: 1 }}>
           <ThemedText type="title">GamerPro</ThemedText>
-          <Text style={{ color: '#9CA3AF' }}>Coach professionnel • Membre depuis Mars 2023</Text>
+          <Text style={{ color: '#9CA3AF' }}>{t('header.memberSince', { date: 'Mar 2023' })}</Text>
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-            <Text style={{ color: '#FBBF24' }}>★ 4.8 (156 avis)</Text>
-            <Text style={{ color: '#A78BFA' }}>🏆 Coach Certifié</Text>
+            <Text style={{ color: '#FBBF24' }}>{t('header.rating', { rating: '4.8', count: 156 })}</Text>
+            <Text style={{ color: '#A78BFA' }}>{t('header.certified')}</Text>
           </View>
         </View>
         
@@ -159,52 +160,112 @@ export default function ProfileScreen() {
     </Pressable>
   );
 
+  const TabsHeader = () => (
+    <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {([
+          { id: 'profile', label: 'Profil' },
+          { id: 'history', label: 'Historique' },
+          { id: 'notifications', label: 'Notifications' },
+          { id: 'settings', label: 'Paramètres' },
+        ] as const).map((tab) => (
+          <Pressable
+            key={tab.id}
+            onPress={() => setActiveSection(tab.id)}
+            style={{
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: activeSection === tab.id ? 'rgba(168,85,247,0.5)' : theme.slateBorder,
+              backgroundColor: activeSection === tab.id ? 'rgba(147,51,234,0.15)' : 'transparent',
+            }}
+          >
+            <Text style={{ color: Colors[colorScheme].text }}>{tab.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
+  if (activeSection === 'history') {
+    return (
+      <ThemedView style={{ flex: 1 }}>
+        <View style={{ padding: 16, gap: 16, flex: 1 }}>
+          <TabsHeader />
+          <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16, flex: 1 }}>
+            <ThemedText type="defaultSemiBold">Historique des commandes</ThemedText>
+            <View style={{ height: 12 }} />
+            <FlatList
+              data={orderHistory}
+              keyExtractor={(i) => i.id}
+              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View>
+                    <Text style={{ color: theme.text, fontWeight: '600' }}>{item.service}</Text>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>#{item.id} • {item.client}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: '#34d399', fontWeight: '700' }}>{item.amount}</Text>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{item.date}</Text>
+                  </View>
+                  <StatusPill status={item.status} />
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (activeSection === 'notifications') {
+    return (
+      <ThemedView style={{ flex: 1 }}>
+        <View style={{ padding: 16, gap: 16, flex: 1 }}>
+          <TabsHeader />
+          <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16, flex: 1 }}>
+            <ThemedText type="defaultSemiBold">Notifications</ThemedText>
+            <View style={{ height: 12 }} />
+            <FlatList
+              data={notifications}
+              keyExtractor={(_, i) => String(i)}
+              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+              renderItem={({ item }) => (
+                <View style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: item.unread ? 'rgba(168,85,247,0.3)' : theme.slateBorder, backgroundColor: item.unread ? 'rgba(147,51,234,0.1)' : 'rgba(51,65,85,0.3)' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: theme.text }}>{item.message}</Text>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{item.time}</Text>
+                  </View>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={{ flex: 1 }}>
-      <MobileHeader />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 8 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {([
-            { id: 'profile', label: 'Profil' },
-            { id: 'history', label: 'Historique' },
-            { id: 'notifications', label: 'Notifications' },
-            { id: 'settings', label: 'Paramètres' },
-          ] as const).map((tab) => (
-            <Pressable
-              key={tab.id}
-              onPress={() => setActiveSection(tab.id)}
-              style={{
-                paddingVertical: 10,
-                paddingHorizontal: 14,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: activeSection === tab.id ? 'rgba(168,85,247,0.5)' : theme.slateBorder,
-                backgroundColor: activeSection === tab.id ? 'rgba(147,51,234,0.15)' : 'transparent',
-              }}
-            >
-              <Text style={{ color: Colors[colorScheme].text }}>{tab.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+        <TabsHeader />
 
-      {activeSection === 'profile' && (
-        <>
-          <ProfileHeader />
-          <StatsGrid />
-          <InfoAndSkills />
-        </>
-      )}
-      {activeSection === 'history' && <HistoryList />}
-      {activeSection === 'notifications' && <NotificationsList />}
-      {activeSection === 'settings' && (
-        <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
-          <ThemedText type="defaultSemiBold">Paramètres du compte</ThemedText>
-          <Text style={{ color: '#9CA3AF', marginTop: 6 }}>Section des paramètres en développement...</Text>
-        </View>
+        {activeSection === 'profile' && (
+          <>
+            <ProfileHeader />
+            <StatsGrid />
+            <InfoAndSkills />
+          </>
+        )}
+        {activeSection === 'settings' && (
+          <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
+            <ThemedText type="defaultSemiBold">Paramètres du compte</ThemedText>
+            <Text style={{ color: '#9CA3AF', marginTop: 6 }}>Section des paramètres en développement...</Text>
+          </View>
 
-      )}
+        )}
       </ScrollView>
     </ThemedView>
   );

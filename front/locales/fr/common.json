@@ -1,0 +1,33 @@
+{
+    "hello": "Bonjour",
+    "welcome": "Bienvenue",
+    "language": "Langue",
+    "change_language": "Changer la langue",
+    "nav": {
+        "home": "Accueil",
+        "marketplace": "Marketplace",
+        "messaging": "Messages",
+        "orders": "Commandes",
+        "profile": "Profil"
+    },
+    "home": {
+        "title": "Bienvenue 👋",
+        "subtitle": "Accédez rapidement aux sections clés",
+        "marketplace": {
+            "title": "Marketplace",
+            "subtitle": "Explorer des services gaming"
+        },
+        "messaging": {
+            "title": "Messages",
+            "subtitle": "Discutez avec vos clients"
+        },
+        "orders": {
+            "title": "Commandes",
+            "subtitle": "Suivre vos commandes"
+        },
+        "reviews": {
+            "title": "Avis",
+            "subtitle": "Gérer vos évaluations"
+        }
+    }
+}

@@ -5,7 +5,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
-import { MobileHeader } from "@/components/MobileHeader";
+import { useTranslation } from "react-i18next";
 
 type Service = {
   id: number;
@@ -26,26 +26,27 @@ type Service = {
 export default function MarketplaceScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
+  const { t } = useTranslation('marketplace');
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGame, setSelectedGame] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const games = [
-    { id: "all", name: "Tous les jeux", icon: "🎮" },
-    { id: "lol", name: "League of Legends", icon: "⚔️" },
-    { id: "valorant", name: "Valorant", icon: "🎯" },
-    { id: "cs2", name: "Counter-Strike 2", icon: "💥" },
-    { id: "fortnite", name: "Fortnite", icon: "🌪️" },
-    { id: "apex", name: "Apex Legends", icon: "🚁" },
+    { id: "all", name: t('games.all'), icon: "🎮" },
+    { id: "lol", name: t('games.lol'), icon: "⚔️" },
+    { id: "valorant", name: t('games.valorant'), icon: "🎯" },
+    { id: "cs2", name: t('games.cs2'), icon: "💥" },
+    { id: "fortnite", name: t('games.fortnite'), icon: "🌪️" },
+    { id: "apex", name: t('games.apex'), icon: "🚁" },
   ];
 
   const categories = [
-    { id: "all", name: "Toutes catégories" },
-    { id: "coaching", name: "Coaching" },
-    { id: "boost", name: "Boost de rang" },
-    { id: "carry", name: "Carry" },
-    { id: "account", name: "Comptes" },
-    { id: "items", name: "Items/Skins" },
+    { id: "all", name: t('categories.all') },
+    { id: "coaching", name: t('categories.coaching') },
+    { id: "boost", name: t('categories.boost') },
+    { id: "carry", name: t('categories.carry') },
+    { id: "account", name: t('categories.account') },
+    { id: "items", name: t('categories.items') },
   ];
 
   const services: Service[] = [
@@ -99,16 +100,15 @@ export default function MarketplaceScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <MobileHeader />
       <ThemedView style={{ padding: 16, gap: 12 }}>
       <View style={{ backgroundColor: theme.slateCard, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.slateBorder }}>
-        <ThemedText type="title" style={{ marginBottom: 6 }}>Marketplace Gaming</ThemedText>
-        <ThemedText style={{ color: '#9CA3AF' }}>Trouvez le service parfait pour votre jeu</ThemedText>
+        <ThemedText type="title" style={{ marginBottom: 6 }}>{t('title')}</ThemedText>
+        <ThemedText style={{ color: '#9CA3AF' }}>{t('subtitle')}</ThemedText>
       </View>
 
       <View style={{ backgroundColor: theme.slateCard, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.slateBorder, gap: 12 }}>
         <TextInput
-          placeholder="Rechercher un service..."
+          placeholder={t('search')}
           placeholderTextColor="#9CA3AF"
           value={searchTerm}
           onChangeText={setSearchTerm}
@@ -194,18 +194,18 @@ export default function MarketplaceScreen() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
                     <Text style={{ color: theme.text, fontWeight: '600', fontSize: 14 }} numberOfLines={2}>{item.title}</Text>
-                    <Text style={{ color: '#a78bfa', fontSize: 12 }}>par {item.provider}</Text>
+                <Text style={{ color: '#a78bfa', fontSize: 12 }}>{t('service.by', { provider: item.provider })}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={{ color: '#34d399', fontWeight: '700', fontSize: 14 }}>{item.price}</Text>
                   </View>
                 </View>
 
-                <Text style={{ color: '#D1D5DB', fontSize: 12, marginBottom: 8 }} numberOfLines={2}>{item.description}</Text>
+            <Text style={{ color: '#D1D5DB', fontSize: 12, marginBottom: 8 }} numberOfLines={2}>{item.description}</Text>
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ color: '#FBBF24', fontSize: 12, fontWeight: '600' }}>★ {item.rating} ({item.reviews})</Text>
-                  <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{item.delivery}</Text>
+              <Text style={{ color: '#FBBF24', fontSize: 12, fontWeight: '600' }}>{t('service.rating', { rating: item.rating, count: item.reviews })}</Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{t('service.delivery', { time: item.delivery })}</Text>
                 </View>
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -220,7 +220,7 @@ export default function MarketplaceScreen() {
                     style={{ backgroundColor: '#6d28d9', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
                     onPress={() => {}}
                   >
-                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Voir</Text>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>{t('service.view')}</Text>
                   </Pressable>
                 </View>
               </View>
