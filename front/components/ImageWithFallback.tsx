@@ -9,7 +9,7 @@ type Props = {
   borderRadius?: number;
 };
 
-export function ImageWithFallback({ source, width, height, borderRadius = 8 }: Props) {
+export function ImageWithFallback({ source, width, height, borderRadius = 8 }: Readonly<Props>) {
   return (
     <View style={{ width, height, borderRadius, overflow: 'hidden', backgroundColor: 'rgba(100,116,139,0.3)' }}>
       <Image

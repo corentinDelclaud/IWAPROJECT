@@ -53,6 +53,6 @@ public class LoggingGatewayFilterFactory extends AbstractGatewayFilterFactory<Ob
 
     private String generateRequestId() {
         return "REQ-" + System.currentTimeMillis() + "-" +
-                (int)(Math.random() * 1000);
+               new java.util.Random().nextInt(1000);
     }
 }
