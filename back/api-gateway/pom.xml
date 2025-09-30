@@ -12,7 +12,7 @@
 
     <artifactId>api-gateway</artifactId>
     <name>API Gateway</name>
-    <description>API Gateway pour l'architecture microservices sans Eureka</description>
+    <description>API Gateway pour l'architecture microservices</description>
 
     <dependencies>
         <dependency>

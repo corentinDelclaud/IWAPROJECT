@@ -365,3 +365,144 @@ filters:
 ```
 
 Cette API Gateway est conçue pour être facilement extensible selon les besoins de votre projet.
+
+## Fonctionnement technique détaillé de l'API Gateway
+
+### 1. Rôle et fonctionnement
+
+L’API Gateway (basée sur **Spring Cloud Gateway**) agit comme un point d’entrée unique pour toutes les requêtes HTTP venant du frontend (React, React Native, etc.) ou d’autres clients. Elle centralise :
+- Le routage des requêtes vers les microservices
+- La gestion CORS
+- Le logging
+- L’application de règles de sécurité ou de transformation
+
+**Flux typique :**
+1. Le frontend envoie une requête à la gateway (`http://localhost:8080`).
+2. La gateway applique les règles globales (CORS, logs, etc.).
+3. Elle route la requête vers le microservice approprié selon la configuration.
+4. Le microservice répond à la gateway.
+5. La gateway renvoie la réponse au frontend.
+
+### 2. Ajout de routes et connexion aux microservices
+
+Les routes sont définies dans `src/main/resources/application.yml` :
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: LoggingFilter
+        - id: product-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/products/**
+```
+
+- **id** : identifiant unique de la route
+- **uri** : URL du microservice cible
+- **predicates** : conditions d’activation (ex : chemin)
+- **filters** : filtres appliqués (ex : logs, réécriture d’URL)
+
+Pour connecter un nouveau microservice, il suffit d’ajouter une nouvelle entrée dans la section `routes` avec le bon chemin et l’URL du service.
+
+### 3. Connexion au frontend
+
+Le frontend (React, React Native) communique uniquement avec la gateway. Exemple d’appel API :
+
+```javascript
+const response = await fetch('http://localhost:8080/api/users/profile', {
+  method: 'GET',
+  headers: { 'Content-Type': 'application/json' }
+});
+```
+
+La configuration CORS (dans `CorsConfig.java` ou `application.yml`) permet d’accepter les requêtes du frontend.
+
+### 4. Structure du code de la gateway
+
+- `ApiGatewayApplication.java` : classe principale qui démarre l’application
+- `config/GatewayConfig.java` : configuration des routes (optionnel, sinon via YAML)
+- `config/CorsConfig.java` : configuration CORS
+- `filter/LoggingGatewayFilterFactory.java` : filtre de logging personnalisé
+
+**Exemple de classe principale :**
+```java
+package com.iwaproject.gateway;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ApiGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ApiGatewayApplication.class, args);
+    }
+}
+```
+
+**Exemple de configuration CORS:**
+```java
+package com.iwaproject.gateway.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
+@Configuration
+public class CorsConfig {
+    @Bean
+    public CorsWebFilter corsWebFilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedOriginPattern("*");
+        config.addAllowedMethod("*");
+        config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return new CorsWebFilter(source);
+    }
+}
+```
+
+**Exemple de filtre de logging :**
+```java
+package com.iwaproject.gateway.filter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.stereotype.Component;
+
+@Component
+public class LoggingGatewayFilterFactory extends AbstractGatewayFilterFactory<Object> {
+    private static final Logger logger = LoggerFactory.getLogger(LoggingGatewayFilterFactory.class);
+
+    @Override
+    public GatewayFilter apply(Object config) {
+        return (exchange, chain) -> {
+            logger.info("=== REQUÊTE ENTRANTE ===\nMéthode: {}\nURI: {}",
+                exchange.getRequest().getMethod(),
+                exchange.getRequest().getURI());
+            return chain.filter(exchange);
+        };
+    }
+}
+```
+
+### 5. Résumé
+
+- La gateway centralise tous les accès et applique des règles globales.
+- Les routes sont configurables dynamiquement dans `application.yml`.
+- Le frontend ne connaît que la gateway, ce qui simplifie la sécurité et l’architecture.
+- Pour ajouter un microservice, il suffit d’ajouter une route.
