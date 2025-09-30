@@ -1,0 +1,186 @@
+### Tests API Gateway - IWA Project
+### Date: 2025-09-29
+### Description: Tests des endpoints de l'API Gateway
+
+### 1. Test de santé du service (Health Check)
+@baseUrl = http://localhost:8080
+
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+###
+
+### 2. Informations détaillées sur l'état du service
+GET http://localhost:8080/actuator/info
+Accept: application/json
+
+###
+
+### 3. Liste des routes configurées dans le Gateway
+GET http://localhost:8080/actuator/gateway/routes
+Accept: application/json
+
+###
+
+### 4. Métriques du service
+GET http://localhost:8080/actuator/metrics
+Accept: application/json
+
+###
+
+### 5. Métriques spécifiques - Utilisation mémoire
+GET http://localhost:8080/actuator/metrics/jvm.memory.used
+Accept: application/json
+
+###
+
+### 6. Test d'un endpoint inexistant (devrait retourner 404)
+GET http://localhost:8080/api/inexistant/test
+Accept: application/json
+
+###
+
+### 7. Test CORS - Requête preflight OPTIONS
+OPTIONS http://localhost:8080/api/test
+Origin: http://localhost:19000
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type
+
+###
+
+### 8. Test d'un service backend (Auth Service) - si configuré
+GET http://localhost:8080/api/auth/health
+Accept: application/json
+
+###
+
+### 9. Test d'un service backend (User Service) - si configuré
+GET http://localhost:8080/api/users/health
+Accept: application/json
+
+###
+
+### 10. Test d'un service backend (Data Service) - si configuré
+GET http://localhost:8080/api/data/health
+Accept: application/json
+
+###
+
+### 11. Test d'un service backend (Common Service) - si configuré
+GET http://localhost:8080/api/common/health
+Accept: application/json
+
+###
+
+### 12. Test POST avec données JSON (exemple d'authentification)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "testpassword"
+}
+
+###
+
+### 13. Test PUT avec données JSON (exemple de mise à jour utilisateur)
+PUT http://localhost:8080/api/users/profile
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com"
+}
+
+###
+
+### 14. Test avec headers personnalisés
+GET http://localhost:8080/api/users/profile
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+X-Request-ID: test-12345
+
+###
+
+### 15. Test de limitation de débit (Rate Limiting) - si configuré
+GET http://localhost:8080/api/auth/test-rate-limit
+Accept: application/json
+
+###
+
+### 16. Test avec paramètres de requête
+GET http://localhost:8080/api/users?page=1&size=10&sort=name
+Accept: application/json
+
+###
+
+### 17. Test DELETE
+DELETE http://localhost:8080/api/users/123
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+###
+
+### 18. Test PATCH
+PATCH http://localhost:8080/api/users/123
+Content-Type: application/json
+
+{
+  "status": "inactive"
+}
+
+###
+
+### 19. Test avec Content-Type différent (Form data)
+POST http://localhost:8080/api/auth/login-form
+Content-Type: application/x-www-form-urlencoded
+
+username=testuser&password=testpassword
+
+###
+
+### 20. Test de timeout (endpoint lent) - si configuré
+GET http://localhost:8080/api/slow-endpoint
+Accept: application/json
+
+###
+
+### Tests pour React Native / Expo ###
+
+### 21. Test CORS pour Expo (origine localhost)
+GET http://localhost:8080/api/users/profile
+Origin: http://localhost:19000
+Accept: application/json
+
+###
+
+### 22. Test CORS pour Expo (origine exp://)
+GET http://localhost:8080/api/users/profile
+Origin: exp://192.168.1.100:19000
+Accept: application/json
+
+###
+
+### 23. Test avec User-Agent React Native
+GET http://localhost:8080/api/users/profile
+Accept: application/json
+User-Agent: okhttp/4.9.2
+
+###
+
+### Tests d'erreur ###
+
+### 24. Test 404 - Ressource non trouvée
+GET http://localhost:8080/api/nonexistent
+Accept: application/json
+
+###
+
+### 25. Test 405 - Méthode non autorisée
+POST http://localhost:8080/actuator/health
+Content-Type: application/json
+
+{}
+
+###
