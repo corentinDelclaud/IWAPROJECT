@@ -1,0 +1,10 @@
+com\iwaproject\catalog\repository\ServiceRepository.class
+com\iwaproject\catalog\CatalogServiceApplication.class
+com\iwaproject\catalog\model\ServiceType.class
+com\iwaproject\catalog\dto\ServiceDTO.class
+com\iwaproject\catalog\dto\CreateServiceRequest.class
+com\iwaproject\catalog\model\Game.class
+com\iwaproject\catalog\DataInitializer.class
+com\iwaproject\catalog\model\ServiceEntity.class
+com\iwaproject\catalog\controller\CatalogController.class
+com\iwaproject\catalog\service\CatalogService.class
