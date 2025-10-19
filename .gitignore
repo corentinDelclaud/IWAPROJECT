@@ -1,1 +1,13 @@
 .idea/
+
+# Environment variables - DO NOT COMMIT TO VERSION CONTROL
+.env
+
+# Docker volumes
+postgres_data/
+keycloak_data/
+
+# Keycloak exports and backups
+keycloak-backup.json
+keycloak-realm-export.json
+*-realm.json
