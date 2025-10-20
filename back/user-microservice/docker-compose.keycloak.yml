@@ -1,0 +1,19 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: iwa-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../keycloak-config:/opt/keycloak/data/import:ro
+    networks:
+      - iwa-network
+
+networks:
+  iwa-network:
+    name: iwa-network
+    external: true

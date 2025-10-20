@@ -1,5 +1,5 @@
-C:\Users\coren\IdeaProjects\IWAPROJECT\back\api-gateway\src\main\java\com\iwaproject\gateway\controller\GatewayController.java
-C:\Users\coren\IdeaProjects\IWAPROJECT\back\api-gateway\src\main\java\com\iwaproject\gateway\filter\LoggingGatewayFilterFactory.java
-C:\Users\coren\IdeaProjects\IWAPROJECT\back\api-gateway\src\main\java\com\iwaproject\gateway\config\CorsConfig.java
-C:\Users\coren\IdeaProjects\IWAPROJECT\back\api-gateway\src\main\java\com\iwaproject\gateway\config\GatewayConfig.java
-C:\Users\coren\IdeaProjects\IWAPROJECT\back\api-gateway\src\main\java\com\iwaproject\gateway\ApiGatewayApplication.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/ApiGatewayApplication.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/config/CorsConfig.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/config/GatewayConfig.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/controller/GatewayController.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/filter/LoggingGatewayFilterFactory.java

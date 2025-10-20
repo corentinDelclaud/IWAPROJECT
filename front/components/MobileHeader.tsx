@@ -42,7 +42,7 @@ export function MobileHeader() {
               <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>3</Text>
             </View>
           </View>
-          <LanguageSwitcher />
+          {/* <LanguageSwitcher /> */}
           <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(147,51,234,0.5)', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: 'white', fontWeight: '700' }}>G</Text>
           </View>

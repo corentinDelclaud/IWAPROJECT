@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useEffect, useState } from 'react';
@@ -8,10 +8,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { GradientBackground } from '@/components/GradientBackground';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { Text } from 'react-native';
+import { Text, ActivityIndicator, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { initI18n } from '@/i18n';
 import { MobileHeader } from '@/components/MobileHeader';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 
 export const unstable_settings = {
@@ -39,19 +40,55 @@ export default function RootLayout() {
   }
 
   return (
+      <AuthProvider>
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DarkTheme}>
-        <GradientBackground>
-          <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-            <MobileHeader />
-            <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
-              {/* Main tabs reflecting previous React project structure */}
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </SafeAreaView>
-        </GradientBackground>
+            <RootLayoutNav />
       </ThemeProvider>
     </SafeAreaProvider>
+      </AuthProvider>
   );
 }
+
+  function RootLayoutNav() {
+    const { isAuthenticated, isLoading } = useAuth();
+    const segments = useSegments();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (isLoading) return;
+
+      const inAuthGroup = segments[0] === '(tabs)';
+
+      if (!isAuthenticated && inAuthGroup) {
+        // Redirect to login if not authenticated
+          router.replace('/login' as any);
+      } else if (isAuthenticated && !inAuthGroup) {
+        // Redirect to tabs if authenticated
+        router.replace('/(tabs)');
+      }
+    }, [isAuthenticated, isLoading, segments]);
+
+    if (isLoading) {
+      return (
+        <GradientBackground>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={Colors.dark.tint} />
+          </View>
+        </GradientBackground>
+      );
+    }
+
+    return (
+      <GradientBackground>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+          <MobileHeader />
+          <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </SafeAreaView>
+      </GradientBackground>
+    );
+  }

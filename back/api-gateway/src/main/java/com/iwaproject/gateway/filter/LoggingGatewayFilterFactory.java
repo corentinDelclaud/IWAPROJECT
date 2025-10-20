@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +25,7 @@ public class LoggingGatewayFilterFactory extends AbstractGatewayFilterFactory<Ob
 
             logger.info("=== REQUÊTE ENTRANTE [{}] ===", requestId);
             logger.info("Timestamp: {}", timestamp);
-            logger.info("Méthode: {}", exchange.getRequest().getMethodValue());
+            logger.info("Méthode: {}", exchange.getRequest().getMethod().name());
             logger.info("URI: {}", exchange.getRequest().getURI());
             logger.info("Path: {}", exchange.getRequest().getPath());
             logger.info("Query Params: {}", exchange.getRequest().getQueryParams());
