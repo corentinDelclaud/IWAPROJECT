@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"  # Port 5433 sur l'hôte pour éviter conflit avec PostgreSQL local
+      - "5432:5432"  # Port 5432 sur l'hôte pour éviter conflit avec PostgreSQL local
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

@@ -62,12 +62,14 @@ export default function RootLayout() {
 
       if (!isAuthenticated && inAuthGroup) {
         // Redirect to login if not authenticated
-          router.replace('/login' as any);
+        console.log('[Navigation] User not authenticated, redirecting to login');
+        router.replace('/login' as any);
       } else if (isAuthenticated && !inAuthGroup) {
         // Redirect to tabs if authenticated
+        console.log('[Navigation] User authenticated, redirecting to tabs');
         router.replace('/(tabs)');
       }
-    }, [isAuthenticated, isLoading, segments]);
+    }, [isAuthenticated, isLoading, segments, router]);
 
     if (isLoading) {
       return (
@@ -82,7 +84,8 @@ export default function RootLayout() {
     return (
       <GradientBackground>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-          <MobileHeader />
+          {/* Only show header when authenticated */}
+          {isAuthenticated && <MobileHeader />}
           <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

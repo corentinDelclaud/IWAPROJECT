@@ -47,7 +47,7 @@ done
 ```bash
 docker ps
 # You should see:
-# - iwa-user-postgres (port 5433)
+# - iwa-user-postgres (port 5432)
 # - iwa-keycloak (port 8080)
 ```
 
@@ -341,7 +341,7 @@ Follow the full guide from Step 1.
 | User Microservice | http://localhost:8081 | - |
 | Swagger UI | http://localhost:8081/swagger-ui.html | - |
 | Health Check | http://localhost:8081/actuator/health | - |
-| PostgreSQL | localhost:5433 | postgres / postgres |
+| PostgreSQL | localhost:5432 | postgres / postgres |
 
 ---
 
@@ -380,14 +380,14 @@ ACCESS_TOKEN=$(curl -s \
 
 ### Port already in use
 
-**Problem**: 8080, 8081, or 5433 is already used.
+**Problem**: 8080, 8081, or 5432 is already used.
 
 **Solution**: 
 ```bash
 # Find what's using the port
 lsof -i :8080
 lsof -i :8081
-lsof -i :5433
+lsof -i :5432
 
 # Stop the conflicting service or change ports in application.properties
 ```

@@ -4,8 +4,15 @@ import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KEYCLOAK_CONFIG } from '@/config/keycloak';
 
-// Enable web browser warming for better UX
+// Enable web browser warming
 WebBrowser.maybeCompleteAuthSession();
+
+// Storage keys
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: '@auth/access_token',
+  REFRESH_TOKEN: '@auth/refresh_token',
+  USER_INFO: '@auth/user_info',
+};
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -35,12 +42,6 @@ interface TokenResponse {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: '@auth/access_token',
-  REFRESH_TOKEN: '@auth/refresh_token',
-  USER_INFO: '@auth/user_info',
-};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -81,30 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const storeTokens = async (access: string, refresh: string, info: UserInfo) => {
-    try {
-      await Promise.all([
-        AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, access),
-        AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh),
-        AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info)),
-      ]);
-    } catch (error) {
-      console.error('Failed to store tokens:', error);
-    }
-  };
-
-  const clearTokens = async () => {
-    try {
-      await Promise.all([
-        AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
-        AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
-        AsyncStorage.removeItem(STORAGE_KEYS.USER_INFO),
-      ]);
-    } catch (error) {
-      console.error('Failed to clear tokens:', error);
-    }
-  };
-
   const parseJwt = (token: string): UserInfo => {
     try {
       const base64Url = token.split('.')[1];
@@ -126,25 +103,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
 
-      // Create authorization request
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'exp',
+        path: 'auth'
+      });
+      
+      console.log('[Auth] Redirect URI:', redirectUri);
+      console.log('[Auth] Authorization Endpoint:', discovery.authorizationEndpoint);
+
       const authRequest = new AuthSession.AuthRequest({
         clientId: KEYCLOAK_CONFIG.clientId,
-        redirectUri: KEYCLOAK_CONFIG.redirectUri,
+        redirectUri,
         scopes: KEYCLOAK_CONFIG.scopes,
         responseType: AuthSession.ResponseType.Code,
         usePKCE: true,
       });
 
-      // Prompt user to authenticate
       const result = await authRequest.promptAsync(discovery);
 
       if (result.type === 'success' && result.params.code) {
-        // Exchange authorization code for tokens
         const tokenResult = await AuthSession.exchangeCodeAsync(
           {
             clientId: KEYCLOAK_CONFIG.clientId,
             code: result.params.code,
-            redirectUri: KEYCLOAK_CONFIG.redirectUri,
+            redirectUri,
             extraParams: {
               code_verifier: authRequest.codeVerifier || '',
             },
@@ -160,11 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserInfo(info);
           setIsAuthenticated(true);
 
-          await storeTokens(
-            tokenResult.accessToken,
-            tokenResult.refreshToken || '',
-            info
-          );
+          await Promise.all([
+            AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokenResult.accessToken),
+            AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokenResult.refreshToken || ''),
+            AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info)),
+          ]);
         }
       }
     } catch (error) {
@@ -176,16 +158,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshAccessToken = async () => {
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
+    if (!refreshToken) throw new Error('No refresh token available');
 
     try {
       const response = await fetch(discovery.tokenEndpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           client_id: KEYCLOAK_CONFIG.clientId,
@@ -193,9 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }).toString(),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to refresh token');
-      }
+      if (!response.ok) throw new Error('Failed to refresh token');
 
       const data: TokenResponse = await response.json();
       const info = parseJwt(data.access_token);
@@ -204,7 +180,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRefreshToken(data.refresh_token);
       setUserInfo(info);
 
-      await storeTokens(data.access_token, data.refresh_token, info);
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token),
+        AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token),
+        AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info)),
+      ]);
     } catch (error) {
       console.error('Token refresh failed:', error);
       await logout();
@@ -214,34 +194,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log('[Auth] Starting logout...');
       setIsLoading(true);
       
-      // Revoke tokens with Keycloak
       if (refreshToken) {
-        try {
-          await fetch(discovery.revocationEndpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              client_id: KEYCLOAK_CONFIG.clientId,
-              refresh_token: refreshToken,
-            }).toString(),
-          });
-        } catch (error) {
-          console.error('Failed to revoke token:', error);
-        }
+        console.log('[Auth] Revoking refresh token with Keycloak...');
+        await fetch(discovery.revocationEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: KEYCLOAK_CONFIG.clientId,
+            refresh_token: refreshToken,
+          }).toString(),
+        }).catch(console.error);
       }
 
-      // Clear local state
+      console.log('[Auth] Clearing local state...');
       setAccessToken(null);
       setRefreshToken(null);
       setUserInfo(null);
       setIsAuthenticated(false);
-      await clearTokens();
+      
+      console.log('[Auth] Removing stored tokens...');
+      await Promise.all([
+        AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
+        AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
+        AsyncStorage.removeItem(STORAGE_KEYS.USER_INFO),
+      ]);
+      
+      console.log('[Auth] Logout complete! isAuthenticated is now false');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('[Auth] Logout failed:', error);
     } finally {
       setIsLoading(false);
     }

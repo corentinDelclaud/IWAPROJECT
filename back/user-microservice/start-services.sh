@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 
 echo "📦 Step 1: Starting PostgreSQL..."
 docker compose -f docker-compose.yml up -d postgres
-echo "✅ PostgreSQL started on port 5433"
+echo "✅ PostgreSQL started on port 5432"
 echo ""
 
 echo "🔑 Step 2: Starting Keycloak..."
@@ -43,7 +43,7 @@ echo ""
 echo "📍 Service URLs:"
 echo "   - Keycloak Admin: http://localhost:8080 (admin/admin)"
 echo "   - Keycloak Realm: IWA_NextLevel"
-echo "   - PostgreSQL: localhost:5433 (postgres/postgres)"
+echo "   - PostgreSQL: localhost:5432 (postgres/postgres)"
 echo ""
 echo "🎯 Next steps:"
 echo "   1. Start the microservice:"

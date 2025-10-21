@@ -25,7 +25,7 @@ export default function LoginScreen() {
     } catch (error) {
       Alert.alert(
         'Login Failed',
-        'Unable to authenticate with Keycloak. Please try again.',
+        'Unable to authenticate. Please try again.',
         [{ text: 'OK' }]
       );
       console.error('Login error:', error);
@@ -67,7 +67,7 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Don't have an account? Register in Keycloak Admin Console
+            Don't have an account? Contact your administrator
           </Text>
         </View>
       </View>

@@ -6,7 +6,7 @@ Le microservice User est **opérationnel** et fonctionne correctement !
 
 ### ✅ Services actifs
 
-1. **PostgreSQL** (Docker) - Port 5433
+1. **PostgreSQL** (Docker) - Port 5432
    - Base de données : `iwa_users`
    - Username : `postgres`
    - Password : `postgres`
@@ -30,11 +30,11 @@ Le microservice User est **opérationnel** et fonctionne correctement !
 ### Problem résolu : Conflit de port PostgreSQL
 
 **Problème initial :** Port 5432 déjà utilisé par PostgreSQL local  
-**Solution :** Docker PostgreSQL sur port **5433**
+**Solution :** Docker PostgreSQL sur port **5432**
 
 **Fichiers modifiés :**
-- `docker-compose.yml` : Port PostgreSQL → 5433
-- `application.properties` : JDBC URL → `localhost:5433`
+- `docker-compose.yml` : Port PostgreSQL → 5432
+- `application.properties` : JDBC URL → `localhost:5432`
 
 ---
 
@@ -183,7 +183,7 @@ Ouvrir http://localhost:8090 dans le navigateur
 ## ✅ Checklist de démarrage
 
 - [x] Docker Compose lancé (`docker-compose up -d`)
-- [x] PostgreSQL accessible sur port 5433
+- [x] PostgreSQL accessible sur port 5432
 - [x] Kafka accessible sur port 9092
 - [x] Microservice démarré sur port 8081
 - [x] Swagger UI accessible : http://localhost:8081/swagger-ui.html
@@ -195,7 +195,7 @@ Ouvrir http://localhost:8090 dans le navigateur
 
 1. **PostgreSQL Local vs Docker**  
    Votre PostgreSQL local (port 5432) reste intact et utilisable  
-   Le Docker PostgreSQL utilise le port 5433
+   Le Docker PostgreSQL utilise le port 5432
 
 2. **Keycloak requis pour l'authentification**  
    Les endpoints protégés nécessitent un JWT valide de Keycloak  

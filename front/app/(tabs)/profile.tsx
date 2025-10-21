@@ -39,10 +39,19 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
+    // For web, use window.confirm; for native, use Alert
+    const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm('Are you sure you want to logout?')
+      : true; // On profile page, just logout without confirmation
+    
+    if (!confirmed) return;
+
     try {
+      console.log('[Profile] Logout button clicked, calling logout...');
       await logout();
+      console.log('[Profile] Logout completed');
     } catch (err) {
-      console.error('Logout failed:', err);
+      console.error('[Profile] Logout failed:', err);
     }
   };
 
@@ -83,16 +92,44 @@ export default function ProfileScreen() {
 
   const ProfileHeader = () => (
     <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 14, padding: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
         <View style={{ flex: 1 }}>
-            <ThemedText type="title">{userProfile?.username || authUser?.preferred_username || 'User'}</ThemedText>
-            <Text style={{ color: '#9CA3AF' }}>{userProfile?.email || authUser?.email || ''}</Text>
+          <ThemedText type="title">{userProfile?.username || authUser?.preferred_username || 'User'}</ThemedText>
+          <Text style={{ color: '#9CA3AF' }}>{userProfile?.email || authUser?.email || ''}</Text>
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-              <Text style={{ color: '#9CA3AF' }}>{t('header.memberSince', { date: userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A' })}</Text>
+            <Text style={{ color: '#9CA3AF' }}>{t('header.memberSince', { date: userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A' })}</Text>
           </View>
+          
+          {/* Display authentication info */}
+          {authUser && (
+            <View style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+              <Text style={{ color: '#60A5FA', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>🔐 Authentication Info</Text>
+              <View style={{ gap: 4 }}>
+                <Text style={{ color: '#9CA3AF', fontSize: 11 }}>User ID: {authUser.sub?.substring(0, 20)}...</Text>
+                {authUser.name && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Name: {authUser.name}</Text>}
+                {authUser.given_name && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>First Name: {authUser.given_name}</Text>}
+                {authUser.family_name && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Last Name: {authUser.family_name}</Text>}
+                {authUser.preferred_username && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Username: {authUser.preferred_username}</Text>}
+              </View>
+            </View>
+          )}
         </View>
         
+        {/* Logout Button */}
+        <Pressable
+          onPress={handleLogout}
+          style={({ pressed }) => ({
+            backgroundColor: pressed ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: 'rgba(239, 68, 68, 0.3)',
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 14 }}>🚪 Logout</Text>
+        </Pressable>
       </View>
     </View>
   );
