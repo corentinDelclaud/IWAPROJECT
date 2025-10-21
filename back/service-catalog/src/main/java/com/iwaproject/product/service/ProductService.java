@@ -23,7 +23,7 @@ public class ProductService {
 
     // Récupérer tous les services
     public List<ProductDTO> getAllProducts() {
-        return StreamSupport.stream(productRepository.findAll().spliterator(), false)
+        return productRepository.findAll().stream()
                 .map(ProductDTO::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -120,6 +120,22 @@ public class ProductService {
             Product updatedProduct = productRepository.save(product);
             return ProductDTO.fromEntity(updatedProduct);
         });
+    }
+
+    // Récupérer les services par filtres : jeu, type, fourchette de prix, provider
+    public List<ProductDTO> getProductsByFilters(Game game,
+                                                 ServiceType serviceType,
+                                                 Float minPrice,
+                                                 Float maxPrice,
+                                                 Integer idProvider) {
+
+        String gameStr = (game == null) ? null : game.name();
+        String typeStr = (serviceType == null) ? null : serviceType.name();
+
+        return productRepository.findByFilters(gameStr, typeStr, minPrice, maxPrice, idProvider)
+                .stream()
+                .map(ProductDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 }
 

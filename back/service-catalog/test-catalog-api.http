@@ -3,99 +3,80 @@
 ### Variables
 @baseUrl = http://localhost:8083
 
-### 1. Récupérer tous les services
-GET {{baseUrl}}/api/catalog
+### 1. Récupérer tous les produits/services
+GET {{baseUrl}}/api/products
 Accept: application/json
 
 ###
 
 ### 2. Récupérer uniquement les services disponibles
-GET {{baseUrl}}/api/catalog?available=true
+GET {{baseUrl}}/api/products?available=true
 Accept: application/json
 
 ###
 
 ### 3. Récupérer un service par ID
-GET {{baseUrl}}/api/catalog/1
-Accept: application/json
-
-###
-
-### 4. Filtrer par jeu Valorant
-GET {{baseUrl}}/api/catalog/game/VALORANT
-Accept: application/json
-
-###
-
-### 5. Filtrer par type Coaching
-GET {{baseUrl}}/api/catalog/type/COACHING
-Accept: application/json
-
-###
-
-### 6. Filtrer par jeu League of Legends
-GET {{baseUrl}}/api/catalog/game/LEAGUE_OF_LEGENDS
+GET {{baseUrl}}/api/products/1
 Accept: application/json
 
 ###
 
 ### 7. Filtrer par jeu ET type
-GET {{baseUrl}}/api/catalog/filter?game=VALORANT&type=COACHING
+GET {{baseUrl}}/api/products/search?game=VALORANT&type=COACHING
 Accept: application/json
 
 ###
 
 ### 8. Récupérer les services du provider 1
-GET {{baseUrl}}/api/catalog/provider/1
+GET {{baseUrl}}/api/products/provider/1
 Accept: application/json
 
 ###
 
 ### 9. Créer un nouveau service
-POST {{baseUrl}}/api/catalog
-Content-Type: application/json
-
-{
-  "game": "VALORANT",
-  "serviceType": "BOOSTING",
-  "description": "Boost Valorant de Bronze à Diamond",
-  "price": 50.0,
-  "unique": false,
-  "isAvailable": true,
-  "idProvider": 1
-}
-
-###
-
-### 10. Mettre à jour un service (ID 1)
-PUT {{baseUrl}}/api/catalog/1
+POST {{baseUrl}}/api/products
 Content-Type: application/json
 
 {
   "game": "VALORANT",
   "serviceType": "COACHING",
-  "description": "Coaching Valorant PREMIUM - Analyse détaillée",
-  "price": 40.0,
+  "description": "Coaching avancé pour Immortal+",
+  "price": 50.0,
   "unique": false,
-  "isAvailable": true,
+  "idProvider": 1
+}
+
+###
+
+### 10. Mettre à jour un service
+PUT {{baseUrl}}/api/products/1
+Content-Type: application/json
+
+{
+  "game": "VALORANT",
+  "serviceType": "COACHING",
+  "description": "Coaching personnalisé Valorant - MISE À JOUR",
+  "price": 35.0,
+  "unique": false,
   "idProvider": 1
 }
 
 ###
 
 ### 11. Changer la disponibilité d'un service
-PATCH {{baseUrl}}/api/catalog/1/toggle-availability
-
-###
-
-### 12. Supprimer un service (ID 5)
-DELETE {{baseUrl}}/api/catalog/5
-
-###
-
-### 13. Test - Service inexistant
-GET {{baseUrl}}/api/catalog/999
+PATCH {{baseUrl}}/api/products/1/toggle-availability
 Accept: application/json
 
 ###
 
+### 12. Supprimer un service
+DELETE {{baseUrl}}/api/products/5
+Accept: application/json
+
+###
+
+### 13. Accès à la console H2
+GET {{baseUrl}}/h2-console
+Accept: text/html
+
+###

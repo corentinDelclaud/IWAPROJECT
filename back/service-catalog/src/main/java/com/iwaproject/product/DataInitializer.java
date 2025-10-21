@@ -29,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Product product2 = new Product();
         product2.setGame(Game.LEAGUE_OF_LEGENDS);
-        product2.setServiceType(ServiceType.BOOSTING);
+        product2.setServiceType(ServiceType.BOOST);
         product2.setDescription("Boost de rang LoL (Fer à Diamant) - Service rapide et sécurisé par joueurs Master/Grandmaster");
         product2.setPrice(20.0f);
         product2.setUnique(false);
@@ -39,7 +39,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Product product3 = new Product();
         product3.setGame(Game.VALORANT);
-        product3.setServiceType(ServiceType.BOOSTING);
+        product3.setServiceType(ServiceType.BOOST);
         product3.setDescription("Boost rapide Valorant - De Bronze à Immortal en moins d'une semaine");
         product3.setPrice(45.0f);
         product3.setUnique(false);

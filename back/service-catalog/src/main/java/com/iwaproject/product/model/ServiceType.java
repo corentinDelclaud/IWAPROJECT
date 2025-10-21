@@ -1,10 +1,10 @@
 package com.iwaproject.product.model;
 
 public enum ServiceType {
-    BOOSTING("Boosting"),
-    COACHING("Coaching"),
-    ACCOUNT_RESALING("Account resaling"),
-    OTHER("Other");
+    BOOST("BOOST"),
+    COACHING("COACHING"),
+    ACCOUNT_RESALING("ACCOUNT RESALING"),
+    OTHER("OTHER");
 
     private final String displayName;
 

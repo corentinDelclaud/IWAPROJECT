@@ -14,6 +14,10 @@ import java.util.List;
 public interface ProductRepository extends CrudRepository<Product, Integer> {
 
     // Trouver tous les services disponibles
+    @Query("SELECT * FROM SERVICE")
+    List<Product> findAll();
+
+    // Trouver tous les services disponibles
     @Query("SELECT * FROM SERVICE WHERE IS_AVAILABLE = true")
     List<Product> findByIsAvailableTrue();
 
@@ -40,4 +44,20 @@ public interface ProductRepository extends CrudRepository<Product, Integer> {
     // Trouver les services disponibles par type
     @Query("SELECT * FROM SERVICE WHERE SERVICE_TYPE = :serviceType AND IS_AVAILABLE = true")
     List<Product> findByServiceTypeAndIsAvailableTrue(@Param("serviceType") String serviceType);
+
+    //Trouver les services disponibles par jeu et/ou type et/ou fourchette de prix et/ou provider
+    // exemple : /products/filter?game=GAME_NAME&serviceType=TYPE_NAME&minPrice=10.00&maxPrice=50.00&idProvider=1
+    @Query("SELECT * FROM SERVICE WHERE " +
+            "(:game IS NULL OR GAME = :game) AND " +
+            "(:type IS NULL OR SERVICE_TYPE = :type) AND " +
+            "(:minPrice IS NULL OR PRICE >= :minPrice) AND " +
+            "(:maxPrice IS NULL OR PRICE <= :maxPrice) AND " +
+            "(:idProvider IS NULL OR ID_PROVIDER = :idProvider)")
+    List<Product> findByFilters(
+            @Param("game") String game,
+            @Param("type") String type,
+            @Param("minPrice") Float minPrice,
+            @Param("maxPrice") Float maxPrice,
+            @Param("idProvider") Integer idProvider
+    );
 }

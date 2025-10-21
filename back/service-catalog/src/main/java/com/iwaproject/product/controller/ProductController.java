@@ -52,22 +52,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsByType(type));
     }
 
-    // GET /api/products/filter - Filtrer par jeu et type
-    @GetMapping("/filter")
-    public ResponseEntity<List<ProductDTO>> filterProducts(
-            @RequestParam(required = false) Game game,
-            @RequestParam(required = false) ServiceType type
-    ) {
-        if (game != null && type != null) {
-            return ResponseEntity.ok(productService.getProductsByGameAndType(game, type));
-        } else if (game != null) {
-            return ResponseEntity.ok(productService.getProductsByGame(game));
-        } else if (type != null) {
-            return ResponseEntity.ok(productService.getProductsByType(type));
-        }
-        return ResponseEntity.ok(productService.getAllProducts());
-    }
-
     // GET /api/products/provider/{idProvider} - Récupérer les services d'un provider
     @GetMapping("/provider/{idProvider}")
     public ResponseEntity<List<ProductDTO>> getProductsByProvider(@PathVariable Integer idProvider) {
@@ -107,6 +91,21 @@ public class ProductController {
         return productService.toggleAvailability(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // GET /api/products/search?type=TYPE&game=GAME&minPrice=MIN&maxPrice=MAX&idProvider=ID
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(
+            @RequestParam(required = false) ServiceType type,
+            @RequestParam(required = false) Game game,
+            @RequestParam(required = false) Float minPrice,
+            @RequestParam(required = false) Float maxPrice,
+            @RequestParam(required = false) Integer idProvider
+    ) {
+        List<ProductDTO> products = productService.getProductsByFilters(
+                game, type, minPrice, maxPrice, idProvider
+        );
+        return ResponseEntity.ok(products);
     }
 }
 
