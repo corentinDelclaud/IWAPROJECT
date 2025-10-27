@@ -74,9 +74,3 @@ DELETE {{baseUrl}}/api/products/5
 Accept: application/json
 
 ###
-
-### 13. Accès à la console H2
-GET {{baseUrl}}/h2-console
-Accept: text/html
-
-###
