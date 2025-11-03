@@ -1,5 +1,8 @@
 com/iwaproject/gateway/config/CorsConfig.class
+com/iwaproject/gateway/filter/JwtAuthenticationGatewayFilterFactory$Config.class
+com/iwaproject/gateway/filter/JwtAuthenticationGatewayFilterFactory.class
 com/iwaproject/gateway/config/GatewayConfig.class
 com/iwaproject/gateway/controller/GatewayController.class
 com/iwaproject/gateway/ApiGatewayApplication.class
 com/iwaproject/gateway/filter/LoggingGatewayFilterFactory.class
+com/iwaproject/gateway/config/SecurityConfig.class

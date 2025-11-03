@@ -3,6 +3,7 @@ package iwaproject.user_microservice.service;
 import iwaproject.user_microservice.dto.UpdateProfileDTO;
 import iwaproject.user_microservice.dto.UserProfileDTO;
 import iwaproject.user_microservice.dto.UserPublicDTO;
+import iwaproject.user_microservice.dto.UserStatsDTO;
 import iwaproject.user_microservice.entity.User;
 import iwaproject.user_microservice.exception.UserAlreadyExistsException;
 import iwaproject.user_microservice.exception.UserDeletedException;
@@ -13,11 +14,15 @@ import iwaproject.user_microservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -131,6 +136,101 @@ public class UserService {
         publishUserEvent(savedUser, "USER_CREATED");
 
         return savedUser;
+    }
+
+    /**
+     * Get or create user - automatically creates user if they don't exist yet
+     * Useful for auto-syncing users on first API access
+     */
+    @Transactional
+    public User getOrCreateUser(String keycloakId, String username, String email, String firstName, String lastName) {
+        log.debug("Getting or creating user with Keycloak ID: {}", keycloakId);
+        
+        Optional<User> existingUser = userRepository.findById(keycloakId);
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+        
+        log.info("User not found in database, creating new user: {}", keycloakId);
+        return createUser(keycloakId, username, email, firstName, lastName);
+    }
+
+    /**
+     * Get all users with pagination
+     */
+    @Transactional(readOnly = true)
+    public Page<UserPublicDTO> getAllUsers(Pageable pageable) {
+        log.info("Fetching all users with pagination: {}", pageable);
+        Page<User> users = userRepository.findAllByDeletedAtIsNull(pageable);
+        return users.map(this::mapToPublicDTO);
+    }
+
+    /**
+     * Search users by username or email
+     */
+    @Transactional(readOnly = true)
+    public Page<UserPublicDTO> searchUsers(String searchTerm, Pageable pageable) {
+        log.info("Searching users with term: {}", searchTerm);
+        Page<User> users = userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseAndDeletedAtIsNull(
+                searchTerm, searchTerm, pageable);
+        return users.map(this::mapToPublicDTO);
+    }
+
+    /**
+     * Get user by email
+     */
+    @Transactional(readOnly = true)
+    public UserPublicDTO getUserByEmail(String email) {
+        log.info("Fetching user by email: {}", email);
+        User user = userRepository.findByEmailAndDeletedAtIsNull(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        return mapToPublicDTO(user);
+    }
+
+    /**
+     * Get multiple users by their IDs
+     */
+    @Transactional(readOnly = true)
+    public List<UserPublicDTO> getUsersByIds(List<String> userIds) {
+        log.info("Fetching users by IDs: {}", userIds);
+        List<User> users = userRepository.findAllByIdInAndDeletedAtIsNull(userIds);
+        return users.stream()
+                .map(this::mapToPublicDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Check if user exists by ID
+     */
+    @Transactional(readOnly = true)
+    public boolean userExists(String userId) {
+        return userRepository.existsByIdAndDeletedAtIsNull(userId);
+    }
+
+    /**
+     * Check if user exists by email
+     */
+    @Transactional(readOnly = true)
+    public boolean userExistsByEmail(String email) {
+        return userRepository.existsByEmailAndDeletedAtIsNull(email);
+    }
+
+    /**
+     * Get user statistics
+     */
+    @Transactional(readOnly = true)
+    public UserStatsDTO getUserStats() {
+        log.info("Fetching user statistics");
+        long totalUsers = userRepository.countByDeletedAtIsNull();
+        long deletedUsers = userRepository.countByDeletedAtIsNotNull();
+        long recentUsers = userRepository.countByCreatedAtAfterAndDeletedAtIsNull(
+                LocalDateTime.now().minusDays(30));
+        
+        return UserStatsDTO.builder()
+                .totalActiveUsers(totalUsers)
+                .totalDeletedUsers(deletedUsers)
+                .usersLastMonth(recentUsers)
+                .build();
     }
 
     // Helper methods for mapping

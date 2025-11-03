@@ -1,4 +1,4 @@
-package iwa.user_microservice;
+package iwaproject.user_microservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

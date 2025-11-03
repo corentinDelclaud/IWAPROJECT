@@ -63,8 +63,8 @@ services:
 
 networks:
   iwa-network:
-    driver: bridge
     name: iwa-network
+    external: true
 
 volumes:
   postgres_data:

@@ -108,7 +108,7 @@ Dans le terminal Spring Boot : `Ctrl+C`
 
 ### Arrêter Docker (PostgreSQL, Kafka, etc.)
 ```bash
-cd /home/etienne/Documents/IWAPROJECT/back/user-microservice
+cd ./IWAPROJECT/back/user-microservice
 docker-compose down
 ```
 
@@ -123,7 +123,7 @@ docker-compose down -v  # ⚠️ Supprime les données PostgreSQL
 
 ### Démarrer les dépendances (PostgreSQL + Kafka)
 ```bash
-cd /home/etienne/Documents/IWAPROJECT/back/user-microservice
+cd ./IWAPROJECT/back/user-microservice
 docker-compose up -d
 ```
 
@@ -134,8 +134,8 @@ docker-compose up -d
 
 Ou avec chemin absolu :
 ```bash
-/home/etienne/Documents/IWAPROJECT/back/user-microservice/mvnw \
-  -f /home/etienne/Documents/IWAPROJECT/back/user-microservice/pom.xml \
+./IWAPROJECT/back/user-microservice/mvnw \
+  -f ./IWAPROJECT/back/user-microservice/pom.xml \
   spring-boot:run
 ```
 

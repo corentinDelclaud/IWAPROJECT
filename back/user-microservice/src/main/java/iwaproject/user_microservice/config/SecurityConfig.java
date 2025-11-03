@@ -43,6 +43,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         
+                        // Webhook endpoints (called by Keycloak)
+                        .requestMatchers("/api/webhooks/**").permitAll()
+                        
                         // Public read-only endpoints
                         .requestMatchers(HttpMethod.GET, "/api/users/{userId}").permitAll()
                         

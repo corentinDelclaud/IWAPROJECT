@@ -186,8 +186,8 @@ curl http://localhost:8081/actuator/health
 ACCESS_TOKEN=$(curl -s \
   -d 'client_id=user-microservice' \
   -d 'grant_type=password' \
-  -d 'username=testuser' \
-  -d 'password=user' \
+  -d 'username=webhooktest' \
+  -d 'password=test123' \
   http://localhost:8080/realms/IWA_NextLevel/protocol/openid-connect/token | jq -r .access_token)
 
 echo "Token: $ACCESS_TOKEN"
