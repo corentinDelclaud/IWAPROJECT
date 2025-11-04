@@ -1,7 +1,7 @@
 package com.iwaproject.gateway.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.gateway.route.RouteLocator;
+// import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -15,7 +15,7 @@ import java.util.Map;
 public class GatewayController {
 
     @Autowired
-    private RouteLocator routeLocator;
+    // private RouteLocator routeLocator;
 
     /**
      * Endpoint de santé de la Gateway

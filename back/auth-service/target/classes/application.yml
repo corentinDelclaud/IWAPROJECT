@@ -9,7 +9,7 @@ spring:
     name: auth-service
 
 keycloak:
-  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
   realm: IWA_NextLevel
   client-id: iwa-client
   admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}

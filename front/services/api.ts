@@ -20,7 +20,8 @@ class ApiService {
 
   private async getAccessToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('access_token');
+      // Keep in sync with STORAGE_KEYS.ACCESS_TOKEN in AuthContext
+      return await AsyncStorage.getItem('@auth/access_token');
     } catch (error) {
       console.error('Error getting access token:', error);
       return null;

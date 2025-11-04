@@ -4,18 +4,18 @@ import { buildUrl } from '@/utils/network';
 export const KEYCLOAK_CONFIG = {
   // Keycloak server URL
   get issuer() {
-    return `${buildUrl(8080)}/realms/IWA_NextLevel`;
+    return `${buildUrl(8085)}/realms/IWA_NextLevel`;
   },
   
   // Client ID configured in Keycloak
-  clientId: 'user-microservice',
+  clientId: 'auth-service',
   
   // Scopes requested during authentication
   scopes: ['openid', 'profile', 'email'],
   
   // Discovery document URL
   get discoveryUrl() {
-    return `${buildUrl(8080)}/realms/IWA_NextLevel/.well-known/openid-configuration`;
+    return `${buildUrl(8085)}/realms/IWA_NextLevel/.well-known/openid-configuration`;
   },
 };
 

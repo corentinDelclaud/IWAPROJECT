@@ -64,20 +64,37 @@ public class GatewayConfig {
                         .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
                         .uri(authServiceUrl))
                 
-                // ==================== USER SERVICE ROUTES (Protégées par JWT) ====================
-                .route("user-profile", r -> r
-                        .path("/api/users/profile")
-                        .filters(f -> f
-                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
-                                .rewritePath("/api/users/(?<segment>.*)", "/api/users/${segment}"))
-                        .uri(userServiceUrl))
+                .route("auth-actuator", r -> r
+                        .path("/api/auth/actuator/**")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/${segment}"))
+                        .uri(authServiceUrl))
                 
-                .route("user-management", r -> r
-                        .path("/api/users/**")
-                        .filters(f -> f
-                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
-                                .rewritePath("/api/users/(?<segment>.*)", "/api/users/${segment}"))
-                        .uri(userServiceUrl))
+                        // ==================== USER SERVICE ROUTES ====================
+                        // Note: Routes plus spécifiques en premier pour éviter les conflits
+                
+                        // Route publique pour actuator (monitoring)
+                        .route("user-actuator", r -> r
+                                .order(1)  // Priorité haute
+                                .path("/api/users/actuator/**")
+                                .filters(f -> f.rewritePath("/api/users/(?<segment>.*)", "/${segment}"))
+                                .uri(userServiceUrl))
+                
+                        // Routes protégées par JWT
+                        .route("user-profile", r -> r
+                                .order(2)
+                                .path("/api/users/profile")
+                                .filters(f -> f
+                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                        .rewritePath("/api/users/(?<segment>.*)", "/api/users/${segment}"))
+                                .uri(userServiceUrl))
+                
+                        .route("user-management", r -> r
+                                .order(3)
+                                .path("/api/users/**")
+                                .filters(f -> f
+                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                        .rewritePath("/api/users/(?<segment>.*)", "/api/users/${segment}"))
+                                .uri(userServiceUrl))
                 
                 // ==================== WEBHOOK ROUTES (Internes - Keycloak extension) ====================
                 .route("webhooks", r -> r
