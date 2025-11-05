@@ -1,58 +1,33 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: api-gateway
   cloud:
     gateway:
-      # Configuration globale CORS
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-              - "exp://*"
-              - "https://*.expo.dev"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins:
+                  - http://localhost:8081
+                  - http://localhost:19000
+                  - http://localhost:19006
+                  - http://10.0.2.2:19000
+                  - http://10.0.2.2:19006
+                  - https://cfxwv_8-anonymous-8081.exp.direct
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowed-headers: "*"
+                allow-credentials: true
+          routes:
+            - id: service-catalog
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/products/**
 
-      # Routes d'exemple (désactivées par défaut)
-      # Décommentez et modifiez selon vos besoins
-      # routes:
-      #   - id: exemple-service
-      #     uri: http://localhost:8081
-      #     predicates:
-      #       - Path=/api/exemple/**
-      #     filters:
-      #       - name: LoggingFilter
-
-# Configuration du monitoring
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,gateway,routes,metrics
-  endpoint:
-    health:
-      show-details: always
-    gateway:
-      enabled: true
-
-# Configuration des logs
-logging:
-  level:
-    com.iwaproject.gateway: DEBUG
-    org.springframework.cloud.gateway: INFO
-    org.springframework.web.cors: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+server:
+  port: 8090
