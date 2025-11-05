@@ -67,7 +67,6 @@ public class DataInitializer implements CommandLineRunner {
         product5.setIdProvider(4);
         productRepository.save(product5);
 
-        System.out.println("✅ Données initiales chargées : " + productRepository.count() + " produits créés");
     }
 }
 

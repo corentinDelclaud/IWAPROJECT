@@ -136,7 +136,7 @@ Received X products from backend
 ### Aucun produit affiché
 **Problème**: La base de données est vide ou les données ne sont pas compatibles
 **Solution**: 
-1. Vérifier le fichier `data.sql` du service-catalog
+1. Vérifier le fichier `data.sql.old` du service-catalog
 2. Vérifier que les types d'énumération (ServiceType) correspondent
 
 ### Les filtres ne fonctionnent pas

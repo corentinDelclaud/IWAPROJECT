@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
-        return 'http://192.168.1.142:8090';
+        return 'http://162.38.39.105:8090';
     }
     // Pour iOS simulator ou web
     return 'http://localhost:8090';

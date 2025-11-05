@@ -130,7 +130,7 @@ npx expo start
 │    jdbc:h2:mem:productdb                │
 │                                         │
 │  • Table SERVICE                        │
-│  • Données initialisées par data.sql   │
+│  • Données initialisées par data.sql.old   │
 └─────────────────────────────────────────┘
 ```
 
@@ -183,7 +183,7 @@ npx expo start
 | Aucun produit affiché | Vérifier que les 3 services tournent |
 | Erreur CORS | Vérifier application.properties de l'API Gateway |
 | Erreur 404 | Vérifier que le service-catalog tourne sur 8083 |
-| Base de données vide | Vérifier data.sql dans service-catalog |
+| Base de données vide | Vérifier data.sql.old dans service-catalog |
 
 ➡️ **Documentation complète** : Voir `CONNEXION_TEST.md`
 

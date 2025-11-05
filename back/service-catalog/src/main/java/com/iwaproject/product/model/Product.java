@@ -1,40 +1,40 @@
 package com.iwaproject.product.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Table("SERVICE")
+@Table("service")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
 
     @Id
-    @Column("ID_SERVICE")
+    @Column("id_service")
     private Integer idService;
 
-    @Column("GAME")
+    @Column("game")
     private Game game;
 
-    @Column("SERVICE_TYPE")
+    @Column("service_type")
     private ServiceType serviceType;
 
-    @Column("DESCRIPTION")
+    @Column("description")
     private String description;
 
-    @Column("PRICE")
+    @Column("price")
     private Float price;
 
-    @Column("IS_UNIQUE")
+    @Column("is_unique")
     private Boolean unique = false;
 
-    @Column("IS_AVAILABLE")
+    @Column("is_available")
     private Boolean isAvailable = true;
 
-    @Column("ID_PROVIDER")
+    @Column("id_provider")
     private Integer idProvider;
 }

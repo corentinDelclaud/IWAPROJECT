@@ -131,10 +131,10 @@ Accept: application/json
 
 # Si les tests 1.x fonctionnent mais pas 2.x :
 # - Vérifier que l'API Gateway tourne sur le port 8090
-# - Vérifier la configuration des routes dans application.properties
+# - Vérifier la configuration des routes dans application.yml
 
 # Si aucun produit n'est retourné :
-# - Vérifier que le fichier data.sql a bien été exécuté
+# - Vérifier que le fichier data.sql.old a bien été exécuté
 # - Vérifier les logs du service-catalog pour voir les requêtes SQL
 
 # Si les filtres ne fonctionnent pas :
