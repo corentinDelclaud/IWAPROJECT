@@ -26,7 +26,7 @@
   "oauth2DeviceCodeLifespan": 600,
   "oauth2DevicePollingInterval": 5,
   "enabled": true,
-  "sslRequired": "external",
+  "sslRequired": "none",
   "registrationAllowed": true,
   "registrationEmailAsUsername": false,
   "rememberMe": true,
@@ -619,7 +619,10 @@
       "redirectUris": [
         "exp://localhost:19000/--/*",
         "exp://192.168.*.*/--/*",
-        "http://localhost:19000/*"
+        "exp://ukurxiw-anonymous-19000.exp.direct/--/*",
+        "exp://*.exp.direct/--/*",
+        "http://localhost:19000/*",
+        "http://localhost:19006/*"
       ],
       "webOrigins": [
         "*"
