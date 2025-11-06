@@ -84,16 +84,14 @@ public class GatewayConfig {
                                 .order(2)
                                 .path("/api/users/profile")
                                 .filters(f -> f
-                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
-                                        .rewritePath("/api/users/(?<segment>.*)", "/api/users/${segment}"))
+                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
                                 .uri(userServiceUrl))
                 
                         .route("user-management", r -> r
                                 .order(3)
                                 .path("/api/users/**")
                                 .filters(f -> f
-                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
-                                        .rewritePath("/api/users/(?<segment>.*)", "/api/users/${segment}"))
+                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
                                 .uri(userServiceUrl))
                 
                 // ==================== WEBHOOK ROUTES (Internes - Keycloak extension) ====================
