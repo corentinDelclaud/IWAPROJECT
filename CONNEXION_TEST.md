@@ -1,40 +1,4 @@
 # Guide de Test de la Connexion Front-Back
-
-## Architecture mise en place
-
-```
-Front-End (React Native/Expo)
-        ↓ HTTP Request
-API Gateway (port 8090)
-        ↓ Route /api/products/**
-Service-Catalog (port 8083)
-        ↓
-Base de données H2 (en mémoire)
-```
-
-## Modifications effectuées
-
-### 1. **API Gateway** (`back/api-gateway/src/main/resources/application.properties`)
-- **Port**: 8090
-- **Configuration CORS**: Ajout des origines autorisées pour le front-end
-- **Route**: `/api/products/**` → `http://localhost:8083`
-- **Rôle**: Point d'entrée unique qui route les requêtes vers les microservices appropriés
-
-### 2. **Service productService.ts** (`front/services/productService.ts`)
-- **URL de base**: `http://localhost:8090/api/products`
-- **Fonctions créées**:
-  - `fetchProducts()`: Récupère tous les produits
-  - `fetchProductById(id)`: Récupère un produit spécifique
-  - `fetchProductsByFilters(filters)`: Récupère les produits filtrés
-- **Mapper**: Transforme les données backend en format front-end compatible avec ProductCard
-- **Gestion d'erreurs**: Retourne des tableaux vides en cas d'erreur pour ne pas casser l'interface
-
-### 3. **Marketplace** (`front/app/(tabs)/marketplace.tsx`)
-- **Filtrage backend**: Les filtres de jeu et catégorie sont maintenant appliqués côté backend
-- **Filtrage client**: La recherche par mot-clé reste côté client
-- **Loading state**: Ajout d'un indicateur de chargement
-- **Message d'erreur**: Affiche "Aucun produit trouvé" si la liste est vide
-
 ## Procédure de test
 
 ### Étape 1: Démarrer le Service-Catalog
@@ -56,7 +20,7 @@ mvn spring-boot:run
 ### Étape 3: Démarrer le Front-End
 ```bash
 cd front
-npx expo start
+npx expo start --tunnel
 ```
 
 ### Étape 4: Tests à effectuer

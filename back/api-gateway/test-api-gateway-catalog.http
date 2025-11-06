@@ -1,0 +1,143 @@
+### Test de l'API Gateway - Service Catalog
+### Ce fichier permet de tester la connexion entre l'API Gateway et le Service-Catalog
+
+### Variables
+@gatewayUrl = http://localhost:8090
+@catalogUrl = http://localhost:8083
+
+###############################################
+### 1. Test direct du Service-Catalog (sans gateway)
+###############################################
+
+### 1.1 Récupérer tous les produits directement
+GET {{catalogUrl}}/api/products
+Accept: application/json
+
+###
+
+### 1.2 Récupérer un produit spécifique directement
+GET {{catalogUrl}}/api/products/1
+Accept: application/json
+
+###
+
+###############################################
+### 2. Test via l'API Gateway
+###############################################
+
+### 2.1 Récupérer tous les produits via Gateway
+GET {{gatewayUrl}}/api/products
+Accept: application/json
+
+###
+
+### 2.2 Récupérer un produit spécifique via Gateway
+GET {{gatewayUrl}}/api/products/1
+Accept: application/json
+
+###
+
+###############################################
+### 3. Test des filtres via Gateway
+###############################################
+
+### 3.1 Filtrer par jeu (Valorant)
+GET {{gatewayUrl}}/api/products/filter?game=VALORANT
+Accept: application/json
+
+###
+
+### 3.2 Filtrer par type de service (Coaching)
+GET {{gatewayUrl}}/api/products/filter?type=COACHING
+Accept: application/json
+
+###
+
+### 3.3 Filtrer par jeu ET type
+GET {{gatewayUrl}}/api/products/filter?game=VALORANT&type=COACHING
+Accept: application/json
+
+###
+
+### 3.4 Filtrer par prix minimum
+GET {{gatewayUrl}}/api/products/filter?minPrice=50
+Accept: application/json
+
+###
+
+### 3.5 Filtrer par prix maximum
+GET {{gatewayUrl}}/api/products/filter?maxPrice=100
+Accept: application/json
+
+###
+
+### 3.6 Filtrer par plage de prix
+GET {{gatewayUrl}}/api/products/filter?minPrice=30&maxPrice=80
+Accept: application/json
+
+###
+
+### 3.7 Filtrer par fournisseur
+GET {{gatewayUrl}}/api/products/filter?idProvider=1
+Accept: application/json
+
+###
+
+### 3.8 Filtrage multiple (jeu + type + prix)
+GET {{gatewayUrl}}/api/products/filter?game=LOL&type=BOOST&minPrice=20&maxPrice=100
+Accept: application/json
+
+###
+
+###############################################
+### 4. Test des erreurs
+###############################################
+
+### 4.1 Produit inexistant
+GET {{gatewayUrl}}/api/products/999999
+Accept: application/json
+
+###
+
+### 4.2 Filtre avec jeu invalide
+GET {{gatewayUrl}}/api/products/filter?game=INVALIDGAME
+Accept: application/json
+
+###
+
+###############################################
+### 5. Test de la base de données H2
+###############################################
+
+### Pour accéder à la console H2 du Service-Catalog :
+### URL: http://localhost:8083/h2-console
+### JDBC URL: jdbc:h2:mem:productdb
+### Username: sa
+### Password: (laisser vide)
+
+###############################################
+### Résultats attendus
+###############################################
+
+# 1. Test direct (1.1, 1.2) : Doit fonctionner si le service-catalog tourne
+# 2. Test via Gateway (2.1, 2.2) : Doit fonctionner si l'API Gateway et le service-catalog tournent
+# 3. Tests de filtres (3.x) : Doivent retourner des produits filtrés selon les critères
+# 4. Test erreur 4.1 : Doit retourner 404 Not Found
+# 5. Test erreur 4.2 : Doit retourner une liste vide []
+
+###############################################
+### Notes de débogage
+###############################################
+
+# Si les tests 1.x fonctionnent mais pas 2.x :
+# - Vérifier que l'API Gateway tourne sur le port 8090
+# - Vérifier la configuration des routes dans application.yml
+
+# Si aucun produit n'est retourné :
+# - Vérifier que le fichier data.sql.old a bien été exécuté
+# - Vérifier les logs du service-catalog pour voir les requêtes SQL
+
+# Si les filtres ne fonctionnent pas :
+# - Vérifier que les valeurs sont en MAJUSCULES (VALORANT, COACHING, etc.)
+# - Vérifier les logs pour voir les paramètres reçus
+
