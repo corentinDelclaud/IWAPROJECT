@@ -26,10 +26,10 @@ export default function ProductPage() {
 
         console.log('🔍 ProductPage - raw id received:', rawId, typeof rawId);
 
-        const numericId = rawId == null ? NaN : Number(rawId);
+        const numericId = rawId == null ? Number.NaN : Number(rawId);
         console.log('🔍 ProductPage - numeric id:', numericId);
 
-        if (isNaN(numericId)) {
+        if (Number.isNaN(numericId)) {
             console.log('❌ ID invalid or missing');
             setProduct(null);
             setLoading(false);
