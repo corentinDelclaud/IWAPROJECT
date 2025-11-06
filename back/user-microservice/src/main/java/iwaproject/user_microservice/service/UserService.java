@@ -143,12 +143,32 @@ public class UserService {
     @Transactional
     public User getOrCreateUser(String keycloakId, String username, String email, String firstName, String lastName) {
         log.debug("Getting or creating user with Keycloak ID: {}", keycloakId);
-        
         Optional<User> existingUser = userRepository.findById(keycloakId);
         if (existingUser.isPresent()) {
             return existingUser.get();
         }
-        
+
+        // If a user with the same username already exists (but with a different id),
+        // return that existing user to avoid unique constraint violations.
+        // This handles the case where the DB has a pre-existing user created earlier
+        // and Keycloak now provides a different subject id for the same username.
+        if (username != null) {
+            Optional<User> byUsername = userRepository.findByUsernameAndDeletedAtIsNull(username);
+            if (byUsername.isPresent()) {
+                log.warn("Found existing user by username with different id. Returning existing user id={}", byUsername.get().getId());
+                return byUsername.get();
+            }
+        }
+
+        // Also check by email if provided
+        if (email != null) {
+            Optional<User> byEmail = userRepository.findByEmailAndDeletedAtIsNull(email);
+            if (byEmail.isPresent()) {
+                log.warn("Found existing user by email with different id. Returning existing user id={}", byEmail.get().getId());
+                return byEmail.get();
+            }
+        }
+
         log.info("User not found in database, creating new user: {}", keycloakId);
         return createUser(keycloakId, username, email, firstName, lastName);
     }

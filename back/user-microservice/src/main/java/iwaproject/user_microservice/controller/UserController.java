@@ -43,13 +43,16 @@ public class UserController {
         String email = jwt.getClaim("email");
         String firstName = jwt.getClaim("given_name");
         String lastName = jwt.getClaim("family_name");
-        
-        log.info("GET /api/users/profile - User: {}", userId);
-        
-        // Auto-create user if they don't exist yet (first login sync)
-        userService.getOrCreateUser(userId, username, email, firstName, lastName);
-        
-        UserProfileDTO profile = userService.getUserProfile(userId);
+
+        log.info("GET /api/users/profile - User (token sub): {}", userId);
+
+        // Auto-create or resolve existing user if they don't exist yet (first login sync)
+        // Use the returned User (might be an existing record with a different internal id)
+        iwaproject.user_microservice.entity.User resolvedUser = userService.getOrCreateUser(userId, username, email, firstName, lastName);
+
+        // Fetch profile using the resolved user's id to avoid conflicts when an existing user
+        // (by username/email) already exists with a different id
+        UserProfileDTO profile = userService.getUserProfile(resolvedUser.getId());
         return ResponseEntity.ok(profile);
     }
 
