@@ -1,0 +1,7 @@
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/ApiGatewayApplication.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/config/CorsConfig.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/config/GatewayConfig.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/config/SecurityConfig.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/controller/GatewayController.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/filter/JwtAuthenticationGatewayFilterFactory.java
+/home/etienne/Documents/IWAPROJECT/back/api-gateway/src/main/java/com/iwaproject/gateway/filter/LoggingGatewayFilterFactory.java

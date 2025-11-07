@@ -1,0 +1,12 @@
+iwaproject/auth_service/dto/RegisterRequest.class
+iwaproject/auth_service/controller/AuthController.class
+iwaproject/auth_service/config/SecurityConfig.class
+iwaproject/auth_service/dto/RefreshTokenRequest.class
+iwaproject/auth_service/AuthServiceApplication.class
+iwaproject/auth_service/service/AuthService.class
+iwaproject/auth_service/dto/RegisterResponse$RegisterResponseBuilder.class
+iwaproject/auth_service/dto/LoginResponse$LoginResponseBuilder.class
+iwaproject/auth_service/dto/LoginResponse.class
+iwaproject/auth_service/dto/RegisterResponse.class
+iwaproject/auth_service/dto/LoginRequest.class
+iwaproject/auth_service/config/KeycloakConfig.class

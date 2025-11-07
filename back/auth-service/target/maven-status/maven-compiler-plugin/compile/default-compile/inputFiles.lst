@@ -1,0 +1,10 @@
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/AuthServiceApplication.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/config/KeycloakConfig.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/config/SecurityConfig.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/controller/AuthController.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/dto/LoginRequest.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/dto/LoginResponse.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/dto/RefreshTokenRequest.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/dto/RegisterRequest.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/dto/RegisterResponse.java
+/home/etienne/Documents/IWAPROJECT/back/auth-service/src/main/java/iwaproject/auth_service/service/AuthService.java

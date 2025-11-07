@@ -1,0 +1,257 @@
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KEYCLOAK_CONFIG } from '@/config/keycloak';
+
+// Enable web browser warming
+WebBrowser.maybeCompleteAuthSession();
+
+// Storage keys
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: '@auth/access_token',
+  REFRESH_TOKEN: '@auth/refresh_token',
+  USER_INFO: '@auth/user_info',
+};
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  accessToken: string | null;
+  refreshToken: string | null;
+  userInfo: UserInfo | null;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
+  refreshAccessToken: () => Promise<void>;
+}
+
+interface UserInfo {
+  sub: string;
+  email?: string;
+  name?: string;
+  preferred_username?: string;
+  given_name?: string;
+  family_name?: string;
+}
+
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  id_token: string;
+  expires_in: number;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  const discovery = {
+    authorizationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/auth`,
+    tokenEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`,
+    revocationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/logout`,
+  };
+
+  // Load stored tokens on mount
+  useEffect(() => {
+    loadStoredAuth();
+  }, []);
+
+  const loadStoredAuth = async () => {
+    try {
+      const [storedAccessToken, storedRefreshToken, storedUserInfo] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
+        AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN),
+        AsyncStorage.getItem(STORAGE_KEYS.USER_INFO),
+      ]);
+
+      if (storedAccessToken && storedRefreshToken) {
+        setAccessToken(storedAccessToken);
+        setRefreshToken(storedRefreshToken);
+        setUserInfo(storedUserInfo ? JSON.parse(storedUserInfo) : null);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Failed to load stored auth:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const parseJwt = (token: string): UserInfo => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Failed to parse JWT:', error);
+      throw error;
+    }
+  };
+
+  const login = async () => {
+    try {
+      setIsLoading(true);
+
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'exp',
+        path: 'auth'
+      });
+      
+      console.log('[Auth] Redirect URI:', redirectUri);
+      console.log('[Auth] Authorization Endpoint:', discovery.authorizationEndpoint);
+
+      const authRequest = new AuthSession.AuthRequest({
+        clientId: KEYCLOAK_CONFIG.clientId,
+        redirectUri,
+        scopes: KEYCLOAK_CONFIG.scopes,
+        responseType: AuthSession.ResponseType.Code,
+        usePKCE: true,
+      });
+
+      const result = await authRequest.promptAsync(discovery);
+
+      if (result.type === 'success' && result.params.code) {
+        const tokenResult = await AuthSession.exchangeCodeAsync(
+          {
+            clientId: KEYCLOAK_CONFIG.clientId,
+            code: result.params.code,
+            redirectUri,
+            extraParams: {
+              code_verifier: authRequest.codeVerifier || '',
+            },
+          },
+          discovery
+        );
+
+        if (tokenResult.accessToken) {
+          const info = parseJwt(tokenResult.accessToken);
+          
+          setAccessToken(tokenResult.accessToken);
+          setRefreshToken(tokenResult.refreshToken || '');
+          setUserInfo(info);
+          setIsAuthenticated(true);
+
+          await Promise.all([
+            AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokenResult.accessToken),
+            AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokenResult.refreshToken || ''),
+            AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info)),
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshAccessToken = async () => {
+    if (!refreshToken) throw new Error('No refresh token available');
+
+    try {
+      const response = await fetch(discovery.tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: KEYCLOAK_CONFIG.clientId,
+          refresh_token: refreshToken,
+        }).toString(),
+      });
+
+      if (!response.ok) throw new Error('Failed to refresh token');
+
+      const data: TokenResponse = await response.json();
+      const info = parseJwt(data.access_token);
+
+      setAccessToken(data.access_token);
+      setRefreshToken(data.refresh_token);
+      setUserInfo(info);
+
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token),
+        AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token),
+        AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info)),
+      ]);
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      await logout();
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      console.log('[Auth] Starting logout...');
+      setIsLoading(true);
+      
+      if (refreshToken) {
+        console.log('[Auth] Revoking refresh token with Keycloak...');
+        await fetch(discovery.revocationEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: KEYCLOAK_CONFIG.clientId,
+            refresh_token: refreshToken,
+          }).toString(),
+        }).catch(console.error);
+      }
+
+      console.log('[Auth] Clearing local state...');
+      setAccessToken(null);
+      setRefreshToken(null);
+      setUserInfo(null);
+      setIsAuthenticated(false);
+      
+      console.log('[Auth] Removing stored tokens...');
+      await Promise.all([
+        AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
+        AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
+        AsyncStorage.removeItem(STORAGE_KEYS.USER_INFO),
+      ]);
+      
+      console.log('[Auth] Logout complete! isAuthenticated is now false');
+    } catch (error) {
+      console.error('[Auth] Logout failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isLoading,
+        accessToken,
+        refreshToken,
+        userInfo,
+        login,
+        logout,
+        refreshAccessToken,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

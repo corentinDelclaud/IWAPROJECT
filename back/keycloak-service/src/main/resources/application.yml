@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/keycloak
+    username: keycloak
+    password: your_secure_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+keycloak:
+  auth-server-url: http://localhost:8080/auth
+  realm: your_realm
+  resource: your_client_id
+  credentials:
+    secret: your_client_secret
+
+server:
+  port: 8081
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicTypeDescriptor: TRACE
+    org.hibernate.type.descriptor.sql.BasicTypeDescriptor$Type: TRACE
