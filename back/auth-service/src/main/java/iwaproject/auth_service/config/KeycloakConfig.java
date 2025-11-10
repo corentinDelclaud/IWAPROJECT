@@ -16,10 +16,10 @@ public class KeycloakConfig {
     @Value("${keycloak.realm}")
     private String realm;
 
-    @Value("${keycloak.admin.username}")
+    @Value("${keycloak.admin-username}")
     private String adminUsername;
 
-    @Value("${keycloak.admin.password}")
+    @Value("${keycloak.admin-password}")
     private String adminPassword;
 
     @Bean
