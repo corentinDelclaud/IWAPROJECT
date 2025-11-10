@@ -45,6 +45,8 @@ services:
     url: http://localhost:8081
   keycloak:
     url: http://localhost:9090
+  product:
+    url: http://localhost:8083
 
 # Configuration du monitoring
 management:
