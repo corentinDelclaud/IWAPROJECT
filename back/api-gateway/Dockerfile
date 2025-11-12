@@ -14,6 +14,6 @@ RUN mvn -q -e -DskipTests -pl api-gateway -am clean package
 # Stage 2: Runtime image with only the built jar
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /workspace/api-gateway/target/api-gateway-1.0-SNAPSHOT.jar /app/app.jar
+COPY --from=build /workspace/api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar /app/app.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app/app.jar"]
