@@ -103,17 +103,17 @@ public class TransactionService {
                 if (!userId.equals(transaction.getIdProvider())) 
                     throw new IllegalStateException("Only provider can accept");
             }
-            case PREPAYED -> {
+            case PREPAID -> {
                 if (current != TransitionState.REQUEST_ACCEPTED) 
                     throw new IllegalStateException("Can only prepay from REQUEST_ACCEPTED");
                 if (!userId.equals(999)) 
                     throw new IllegalStateException("Only test user 999 can trigger prepayment");
             }
             case CANCELED -> {
-                if (current == TransitionState.PREPAYED || 
+                if (current == TransitionState.PREPAID ||
                     current == TransitionState.CLIENT_CONFIRMED || 
                     current == TransitionState.PROVIDER_CONFIRMED ||
-                    current == TransitionState.DOUBLE_CONFIRMED) 
+                    current == TransitionState.DOUBLE_CONFIRMED)
                     throw new IllegalStateException("Cannot cancel after prepayment");
             }
         }

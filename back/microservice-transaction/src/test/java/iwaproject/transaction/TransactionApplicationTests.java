@@ -8,6 +8,7 @@ class TransactionApplicationTests {
 
 	@Test
 	void contextLoads() {
+        throw new UnsupportedOperationException();
 	}
 
 }

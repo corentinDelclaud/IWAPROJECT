@@ -50,7 +50,7 @@ public class DataInitializer implements CommandLineRunner {
         Transaction t2 = new Transaction(TransitionState.REQUESTED, 2, 2, 102, 2);
         Transaction t3 = new Transaction(TransitionState.REQUEST_ACCEPTED, 3, 3, 103, 3);
         t3.setRequestValidationDate(java.time.LocalDateTime.now().minusDays(1));
-        Transaction t4 = new Transaction(TransitionState.PREPAYED, 4, 4, 101, 4);
+        Transaction t4 = new Transaction(TransitionState.PREPAID, 4, 4, 101, 4);
         Transaction t5 = new Transaction(TransitionState.FINISHED_AND_PAYED, 5, 5, 102, 5);
         t5.setFinishDate(java.time.LocalDateTime.now().minusDays(3));
         transactionRepository.saveAll(java.util.List.of(t1, t2, t3, t4, t5));

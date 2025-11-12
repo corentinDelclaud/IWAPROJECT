@@ -443,115 +443,115 @@ import java.time.LocalDateTime;
 
 @Service
 public class TransactionService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(TransactionService.class);
-    
+
     private final TransactionRepository transactionRepository;
     private final ConversationRepository conversationRepository;
     private final ProductRepository productRepository;
-    
-    public TransactionService(TransactionRepository transactionRepository, 
-                            ConversationRepository conversationRepository,
-                            ProductRepository productRepository) {
+
+    public TransactionService(TransactionRepository transactionRepository,
+                              ConversationRepository conversationRepository,
+                              ProductRepository productRepository) {
         this.transactionRepository = transactionRepository;
         this.conversationRepository = conversationRepository;
         this.productRepository = productRepository;
     }
-    
+
     @Transactional
     public Transaction createTransaction(CreateTransactionRequest request) {
         Product product = productRepository.findById(request.serviceId())
-            .orElseThrow(() -> new IllegalArgumentException("Service not found"));
-        
-        TransitionState initialState = request.directRequest() 
-            ? TransitionState.REQUESTED 
-            : TransitionState.EXCHANGING;
-        
+                .orElseThrow(() -> new IllegalArgumentException("Service not found"));
+
+        TransitionState initialState = request.directRequest()
+                ? TransitionState.REQUESTED
+                : TransitionState.EXCHANGING;
+
         Conversation conversation = new Conversation(request.userId(), product.getIdProvider());
         conversation = conversationRepository.save(conversation);
-        
+
         Transaction transaction = new Transaction(
-            initialState,
-            request.serviceId(),
-            request.userId(),
-            product.getIdProvider(),
-            conversation.getId()
+                initialState,
+                request.serviceId(),
+                request.userId(),
+                product.getIdProvider(),
+                conversation.getId()
         );
-        
+
         log.info("Created transaction {} with state {}", transaction.getId(), initialState);
         return transactionRepository.save(transaction);
     }
-    
+
     public Transaction getTransaction(Integer id) {
         return transactionRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
     }
-    
+
     @Transactional
     public Transaction updateState(Integer transactionId, UpdateStateRequest request) {
         Transaction transaction = getTransaction(transactionId);
         TransitionState currentState = transaction.getTransactionState();
         TransitionState newState = request.newState();
         Integer userId = request.userId();
-        
+
         validateStateTransition(transaction, currentState, newState, userId);
-        
+
         transaction.setTransactionState(newState);
-        
+
         switch (newState) {
             case REQUEST_ACCEPTED -> transaction.setRequestValidationDate(LocalDateTime.now());
             case CLIENT_CONFIRMED, PROVIDER_CONFIRMED -> handleConfirmation(transaction, userId);
             case DOUBLE_CONFIRMED -> handleDoubleConfirmation(transaction);
             case FINISHED_AND_PAYED, CANCELED -> transaction.setFinishDate(LocalDateTime.now());
         }
-        
+
         log.info("Transaction {} state changed from {} to {}", transactionId, currentState, newState);
         return transactionRepository.save(transaction);
     }
-    
-    private void validateStateTransition(Transaction transaction, TransitionState current, 
-                                        TransitionState target, Integer userId) {
+
+    private void validateStateTransition(Transaction transaction, TransitionState current,
+                                         TransitionState target, Integer userId) {
         if (current == TransitionState.CANCELED || current == TransitionState.FINISHED_AND_PAYED) {
             throw new IllegalStateException("Transaction is already finalized");
         }
-        
+
         switch (target) {
             case REQUESTED -> {
-                if (current != TransitionState.EXCHANGING) 
+                if (current != TransitionState.EXCHANGING)
                     throw new IllegalStateException("Can only move to REQUESTED from EXCHANGING");
-                if (!userId.equals(transaction.getIdClient())) 
+                if (!userId.equals(transaction.getIdClient()))
                     throw new IllegalStateException("Only client can request");
             }
             case REQUEST_ACCEPTED -> {
-                if (current != TransitionState.REQUESTED) 
+                if (current != TransitionState.REQUESTED)
                     throw new IllegalStateException("Can only accept from REQUESTED");
-                if (!userId.equals(transaction.getIdProvider())) 
+                if (!userId.equals(transaction.getIdProvider()))
                     throw new IllegalStateException("Only provider can accept");
             }
-            case PREPAYED -> {
-                if (current != TransitionState.REQUEST_ACCEPTED) 
+            case PREPAID -> {
+                if (current != TransitionState.REQUEST_ACCEPTED)
                     throw new IllegalStateException("Can only prepay from REQUEST_ACCEPTED");
-                if (!userId.equals(999)) 
+                if (!userId.equals(999))
                     throw new IllegalStateException("Only test user 999 can trigger prepayment");
             }
             case CANCELED -> {
-                if (current == TransitionState.PREPAYED || 
-                    current == TransitionState.CLIENT_CONFIRMED || 
-                    current == TransitionState.PROVIDER_CONFIRMED ||
-                    current == TransitionState.DOUBLE_CONFIRMED) 
+                if (current == TransitionState.PREPAID ||
+                        current == TransitionState.CLIENT_CONFIRMED ||
+                        current == TransitionState.PROVIDER_CONFIRMED ||
+                        current == TransitionState.DOUBLE_CONFIRMED)
                     throw new IllegalStateException("Cannot cancel after prepayment");
             }
         }
     }
-    
+
     private void handleConfirmation(Transaction transaction, Integer userId) {
         boolean isClient = userId.equals(transaction.getIdClient());
         boolean isProvider = userId.equals(transaction.getIdProvider());
-        
+
         if (!isClient && !isProvider) {
             throw new IllegalStateException("User not part of transaction");
         }
-        
+
         TransitionState current = transaction.getTransactionState();
         if (current == TransitionState.CLIENT_CONFIRMED && isProvider) {
             transaction.setTransactionState(TransitionState.DOUBLE_CONFIRMED);
@@ -559,7 +559,7 @@ public class TransactionService {
             transaction.setTransactionState(TransitionState.DOUBLE_CONFIRMED);
         }
     }
-    
+
     private void handleDoubleConfirmation(Transaction transaction) {
         log.debug("Both parties confirmed transaction {}", transaction.getId());
         try {
@@ -645,19 +645,19 @@ import java.math.BigDecimal;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
-    
+
     private final ProductRepository productRepository;
     private final ConversationRepository conversationRepository;
     private final TransactionRepository transactionRepository;
-    
+
     public DataInitializer(ProductRepository productRepository,
-                          ConversationRepository conversationRepository,
-                          TransactionRepository transactionRepository) {
+                           ConversationRepository conversationRepository,
+                           TransactionRepository transactionRepository) {
         this.productRepository = productRepository;
         this.conversationRepository = conversationRepository;
         this.transactionRepository = transactionRepository;
     }
-    
+
     @Override
     public void run(String... args) {
         // Products
@@ -667,7 +667,7 @@ public class DataInitializer implements CommandLineRunner {
         Product p4 = new Product("Dota 2", "Coaching", "Coaching role support", new BigDecimal("30.00"), false, 101);
         Product p5 = new Product("Overwatch", "Boost", "Bronze vers Platine", new BigDecimal("60.00"), false, 102);
         productRepository.saveAll(java.util.List.of(p1, p2, p3, p4, p5));
-        
+
         // Conversations
         Conversation c1 = new Conversation(1, 101);
         Conversation c2 = new Conversation(2, 102);
@@ -675,13 +675,13 @@ public class DataInitializer implements CommandLineRunner {
         Conversation c4 = new Conversation(4, 101);
         Conversation c5 = new Conversation(5, 102);
         conversationRepository.saveAll(java.util.List.of(c1, c2, c3, c4, c5));
-        
+
         // Transactions
         Transaction t1 = new Transaction(TransitionState.EXCHANGING, 1, 1, 101, 1);
         Transaction t2 = new Transaction(TransitionState.REQUESTED, 2, 2, 102, 2);
         Transaction t3 = new Transaction(TransitionState.REQUEST_ACCEPTED, 3, 3, 103, 3);
         t3.setRequestValidationDate(java.time.LocalDateTime.now().minusDays(1));
-        Transaction t4 = new Transaction(TransitionState.PREPAYED, 4, 4, 101, 4);
+        Transaction t4 = new Transaction(TransitionState.PREPAID, 4, 4, 101, 4);
         Transaction t5 = new Transaction(TransitionState.FINISHED_AND_PAYED, 5, 5, 102, 5);
         t5.setFinishDate(java.time.LocalDateTime.now().minusDays(3));
         transactionRepository.saveAll(java.util.List.of(t1, t2, t3, t4, t5));
