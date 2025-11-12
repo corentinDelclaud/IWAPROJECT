@@ -5,10 +5,10 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
-        return 'http://162.38.39.105:8090';
+        return 'http://162.38.39.105:8080';
     }
     // Pour iOS simulator ou web
-    return 'http://localhost:8090';
+    return 'http://localhost:8080';
 };
 
 const API_BASE_URL = `${getBaseUrl()}/api/products`;
