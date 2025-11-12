@@ -35,8 +35,21 @@ public class TransactionService {
     
     @Transactional
     public Transaction createTransaction(CreateTransactionRequest request) {
+        log.info("Creating transaction for userId={}, serviceId={}", request.userId(), request.serviceId());
+        
         Product product = productRepository.findById(request.serviceId())
             .orElseThrow(() -> new IllegalArgumentException("Service not found"));
+        
+        // Vérifier qu'aucune transaction active n'existe déjà
+        transactionRepository.findByIdClientAndIdServiceAndTransactionStateNotIn(
+            request.userId(),
+            request.serviceId(),
+            java.util.List.of(TransitionState.FINISHED_AND_PAYED, TransitionState.CANCELED)
+        ).ifPresent(existingTransaction -> {
+            throw new IllegalStateException(
+                "Active transaction already exists (id=" + existingTransaction.getId() + ")"
+            );
+        });
         
         TransitionState initialState = request.directRequest() 
             ? TransitionState.REQUESTED 
@@ -53,17 +66,21 @@ public class TransactionService {
             conversation.getId()
         );
         
-        log.info("Created transaction {} with state {}", transaction.getId(), initialState);
-        return transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(transaction);
+        log.info("Transaction created: id={}, state={}", saved.getId(), initialState);
+        return saved;
     }
     
     public Transaction getTransaction(Integer id) {
+        log.debug("Fetching transaction with id={}", id);
         return transactionRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
     }
     
     @Transactional
     public Transaction updateState(Integer transactionId, UpdateStateRequest request) {
+        log.info("Updating transaction {} state to {} by user {}", transactionId, request.newState(), request.userId());
+        
         Transaction transaction = getTransaction(transactionId);
         TransitionState currentState = transaction.getTransactionState();
         TransitionState newState = request.newState();
@@ -80,12 +97,15 @@ public class TransactionService {
             case FINISHED_AND_PAYED, CANCELED -> transaction.setFinishDate(LocalDateTime.now());
         }
         
-        log.info("Transaction {} state changed from {} to {}", transactionId, currentState, newState);
-        return transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(transaction);
+        log.info("Transaction {} state changed: {} -> {}", transactionId, currentState, saved.getTransactionState());
+        return saved;
     }
     
     private void validateStateTransition(Transaction transaction, TransitionState current, 
                                         TransitionState target, Integer userId) {
+        log.debug("Validating state transition: {} -> {} for user {}", current, target, userId);
+        
         if (current == TransitionState.CANCELED || current == TransitionState.FINISHED_AND_PAYED) {
             throw new IllegalStateException("Transaction is already finalized");
         }
@@ -109,6 +129,24 @@ public class TransactionService {
                 if (!userId.equals(999)) 
                     throw new IllegalStateException("Only test user 999 can trigger prepayment");
             }
+            case CLIENT_CONFIRMED -> {
+                if (current != TransitionState.PREPAID && current != TransitionState.PROVIDER_CONFIRMED)
+                    throw new IllegalStateException("Can only confirm from PREPAID or after provider confirmation");
+                if (!userId.equals(transaction.getIdClient()))
+                    throw new IllegalStateException("Only client can confirm as client");
+            }
+            case PROVIDER_CONFIRMED -> {
+                if (current != TransitionState.PREPAID && current != TransitionState.CLIENT_CONFIRMED)
+                    throw new IllegalStateException("Can only confirm from PREPAID or after client confirmation");
+                if (!userId.equals(transaction.getIdProvider()))
+                    throw new IllegalStateException("Only provider can confirm as provider");
+            }
+            case DOUBLE_CONFIRMED -> {
+                throw new IllegalStateException("DOUBLE_CONFIRMED is set automatically, cannot be set manually");
+            }
+            case FINISHED_AND_PAYED -> {
+                throw new IllegalStateException("FINISHED_AND_PAYED is set automatically after DOUBLE_CONFIRMED");
+            }
             case CANCELED -> {
                 if (current == TransitionState.PREPAID ||
                     current == TransitionState.CLIENT_CONFIRMED || 
@@ -128,15 +166,24 @@ public class TransactionService {
         }
         
         TransitionState current = transaction.getTransactionState();
+        
+        // Vérifier qu'on vient bien de PREPAID ou d'une confirmation partielle
+        if (current != TransitionState.PREPAID && 
+            current != TransitionState.CLIENT_CONFIRMED && 
+            current != TransitionState.PROVIDER_CONFIRMED) {
+            throw new IllegalStateException("Can only confirm from PREPAID state");
+        }
+        
         if (current == TransitionState.CLIENT_CONFIRMED && isProvider) {
             transaction.setTransactionState(TransitionState.DOUBLE_CONFIRMED);
         } else if (current == TransitionState.PROVIDER_CONFIRMED && isClient) {
             transaction.setTransactionState(TransitionState.DOUBLE_CONFIRMED);
         }
+        // Si on est en PREPAID, le state reste CLIENT_CONFIRMED ou PROVIDER_CONFIRMED (déjà set avant l'appel)
     }
     
     private void handleDoubleConfirmation(Transaction transaction) {
-        log.debug("Both parties confirmed transaction {}", transaction.getId());
+        log.info("Both parties confirmed transaction {}, processing payment...", transaction.getId());
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -144,5 +191,6 @@ public class TransactionService {
         }
         transaction.setTransactionState(TransitionState.FINISHED_AND_PAYED);
         transaction.setFinishDate(LocalDateTime.now());
+        log.info("Transaction {} finalized and paid", transaction.getId());
     }
 }
