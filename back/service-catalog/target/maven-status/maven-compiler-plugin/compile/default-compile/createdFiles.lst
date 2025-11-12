@@ -1,4 +1,3 @@
-com\iwaproject\product\DataInitializer.class
 com\iwaproject\product\service\ProductService.class
 com\iwaproject\product\controller\ProductController.class
 com\iwaproject\product\repository\ProductRepository.class

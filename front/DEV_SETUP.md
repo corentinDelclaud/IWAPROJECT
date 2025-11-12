@@ -22,7 +22,7 @@ Pour que l'authentification Keycloak fonctionne sur mobile et web, il faut indiq
      ```
    - Exemple :
      ```bash
-     EXPO_PUBLIC_API_HOST=162.38.33.90 npm start
+     EXPO_PUBLIC_API_HOST=172.22.0.1 npm start
      ```
 
 3. **Pourquoi ?**
