@@ -20,6 +20,9 @@ public class GatewayConfig {
     @Value("${services.user.url:http://localhost:8081}")
     private String userServiceUrl;
 
+    @Value("${services.transaction.url:http://localhost:8084}")
+    private String transactionServiceUrl;
+
     @Value("${services.keycloak.url:http://localhost:8080}")
     private String keycloakUrl;
 
@@ -99,6 +102,40 @@ public class GatewayConfig {
                         .path("/api/webhooks/**")
                         .filters(f -> f.rewritePath("/api/webhooks/(?<segment>.*)", "/api/webhooks/${segment}"))
                         .uri(userServiceUrl))
+                
+                // ==================== TRANSACTION SERVICE ROUTES ====================
+                .route("transaction-create", r -> r
+                        .order(1)
+                        .path("/api/transactions")
+                        .and().method("POST")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                .rewritePath("/api/transactions", "/transaction"))
+                        .uri(transactionServiceUrl))
+                
+                .route("transaction-get", r -> r
+                        .order(2)
+                        .path("/api/transactions/{id}")
+                        .and().method("GET")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                .rewritePath("/api/transactions/(?<segment>.*)", "/transaction/${segment}"))
+                        .uri(transactionServiceUrl))
+                
+                .route("transaction-update-state", r -> r
+                        .order(3)
+                        .path("/api/transactions/{id}/state")
+                        .and().method("PUT")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                .rewritePath("/api/transactions/(?<segment>.*)", "/transaction/${segment}"))
+                        .uri(transactionServiceUrl))
+                
+                .route("transaction-swagger", r -> r
+                        .order(4)
+                        .path("/api/transactions/swagger-ui/**", "/api/transactions/v3/api-docs/**")
+                        .filters(f -> f.rewritePath("/api/transactions/(?<segment>.*)", "/${segment}"))
+                        .uri(transactionServiceUrl))
                 
                 .build();
     }

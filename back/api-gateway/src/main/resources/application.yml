@@ -30,6 +30,14 @@ spring:
           filters:
             - RewritePath=/api/products/(?<segment>.*), /api/products/$\{segment}
 
+        # Route pour le service transaction
+        - id: transaction-service
+          uri: ${services.transaction.url}
+          predicates:
+            - Path=/api/transactions/**
+          filters:
+            - RewritePath=/api/transactions/(?<segment>.*), /transaction/$\{segment}
+
       # Configuration globale CORS
       globalcors:
         cors-configurations:
@@ -71,6 +79,8 @@ services:
     url: http://service-user:8081
   product:
     url: http://service-catalog:8083
+  transaction:
+    url: http://service-transaction:8084
   keycloak:
     url: http://localhost:9090
 
