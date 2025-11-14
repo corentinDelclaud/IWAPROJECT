@@ -4,6 +4,7 @@
 *.ipr
 *.iws
 .vscode/
+.cursor/
 .project
 .classpath
 .settings/
