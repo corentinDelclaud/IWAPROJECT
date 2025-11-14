@@ -15,12 +15,19 @@ export default function HomeScreen() {
     const { t } = useTranslation();
     const { userInfo, accessToken } = useAuth();
 
+    const username = userInfo?.preferred_username || userInfo?.name || userInfo?.given_name || null;
+
+
     return (
         <ScrollView style={{ flex: 1 }}>
             <ThemedView style={{ padding: 16 }}>
                         
             <ThemedView style={{ backgroundColor: theme.slateCard, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: theme.slateBorder }}>
-                <ThemedText type="title">{t('common:home.title')}</ThemedText>
+                <ThemedView style={{ alignItems: 'center' }}></ThemedView>
+                    <ThemedText type="title" style={{ textAlign: 'center' }}>{t('common:home.title')}</ThemedText>
+                    <ThemedText type="title" style={{ textAlign: 'center' }}>{username ? `${username}` : ''}</ThemedText>
+                </ThemedView>
+
                 <ThemedText style={{ color: '#9CA3AF', marginTop: 4 }}>{t('common:home.subtitle')}</ThemedText>
             </ThemedView>
 
@@ -49,7 +56,6 @@ export default function HomeScreen() {
                         <ThemedText style={{ color: '#9CA3AF' }}>{t('common:home.reviews.subtitle')}</ThemedText>
                     </ThemedView>
                 </Link>
-            </ThemedView>
             </ThemedView>
         </ScrollView>
     );
