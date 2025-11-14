@@ -1,44 +1,105 @@
 package com.iwaproject.gateway.config;
 
+import com.iwaproject.gateway.filter.JwtAuthenticationGatewayFilterFactory;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@RequiredArgsConstructor
 public class GatewayConfig {
+
+    private final JwtAuthenticationGatewayFilterFactory jwtAuthFilter;
+
+    @Value("${services.auth.url:http://localhost:8082}")
+    private String authServiceUrl;
+
+    @Value("${services.user.url:http://localhost:8081}")
+    private String userServiceUrl;
+
+    @Value("${services.keycloak.url:http://localhost:8080}")
+    private String keycloakUrl;
 
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
-                // Routes d'authentification - pas de filtre d'auth nécessaire
-                .route("auth-login", r -> r.path("/api/auth/login")
-                        .uri("lb://service-auth"))
-                .route("auth-register", r -> r.path("/api/auth/register")
-                        .uri("lb://service-auth"))
-                .route("auth-refresh", r -> r.path("/api/auth/refresh")
-                        .uri("lb://service-auth"))
-
-                // Routes utilisateur - authentification requise
-                .route("user-profile", r -> r.path("/api/users/profile/**")
-                        .uri("lb://service-user"))
-                .route("user-management", r -> r.path("/api/users/**")
-                        .uri("lb://service-user"))
-
-                // Routes de données - authentification requise
-                .route("data-products", r -> r.path("/api/data/products/**")
-                        .uri("lb://service-data"))
-                .route("data-orders", r -> r.path("/api/data/orders/**")
-                        .uri("lb://service-data"))
-                .route("data-marketplace", r -> r.path("/api/data/marketplace/**")
-                        .uri("lb://service-data"))
-
-                // Routes communes - publiques
-                .route("common-health", r -> r.path("/api/common/health")
-                        .uri("lb://service-common"))
-                .route("common-config", r -> r.path("/api/common/config/**")
-                        .uri("lb://service-common"))
-
+                // ==================== KEYCLOAK ROUTES (Proxy pour le frontend) ====================
+                .route("keycloak-realms", r -> r
+                        .path("/realms/**")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .preserveHostHeader())
+                        .uri(keycloakUrl))
+                
+                .route("keycloak-resources", r -> r
+                        .path("/resources/**")
+                        .uri(keycloakUrl))
+                
+                // ==================== AUTH SERVICE ROUTES (Publiques) ====================
+                .route("auth-login", r -> r
+                        .path("/api/auth/login")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
+                        .uri(authServiceUrl))
+                
+                .route("auth-register", r -> r
+                        .path("/api/auth/register")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
+                        .uri(authServiceUrl))
+                
+                .route("auth-refresh", r -> r
+                        .path("/api/auth/refresh")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
+                        .uri(authServiceUrl))
+                
+                .route("auth-logout", r -> r
+                        .path("/api/auth/logout")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
+                        .uri(authServiceUrl))
+                
+                .route("auth-health", r -> r
+                        .path("/api/auth/health")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
+                        .uri(authServiceUrl))
+                
+                .route("auth-actuator", r -> r
+                        .path("/api/auth/actuator/**")
+                        .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/${segment}"))
+                        .uri(authServiceUrl))
+                
+                        // ==================== USER SERVICE ROUTES ====================
+                        // Note: Routes plus spécifiques en premier pour éviter les conflits
+                
+                        // Route publique pour actuator (monitoring)
+                        .route("user-actuator", r -> r
+                                .order(1)  // Priorité haute
+                                .path("/api/users/actuator/**")
+                                .filters(f -> f.rewritePath("/api/users/(?<segment>.*)", "/${segment}"))
+                                .uri(userServiceUrl))
+                
+                        // Routes protégées par JWT
+                        .route("user-profile", r -> r
+                                .order(2)
+                                .path("/api/users/profile")
+                                .filters(f -> f
+                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                                .uri(userServiceUrl))
+                
+                        .route("user-management", r -> r
+                                .order(3)
+                                .path("/api/users/**")
+                                .filters(f -> f
+                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                                .uri(userServiceUrl))
+                
+                // ==================== WEBHOOK ROUTES (Internes - Keycloak extension) ====================
+                .route("webhooks", r -> r
+                        .path("/api/webhooks/**")
+                        .filters(f -> f.rewritePath("/api/webhooks/(?<segment>.*)", "/api/webhooks/${segment}"))
+                        .uri(userServiceUrl))
+                
                 .build();
     }
 }

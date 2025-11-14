@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, Text, View, ScrollView } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { FlatList, Pressable, Text, View, ScrollView, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/context/AuthContext';
+import { apiService, UserProfile } from '@/services/api';
 
 type Section = 'profile' | 'history' | 'notifications' | 'settings';
 
@@ -12,7 +14,46 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const { t } = useTranslation('profile');
+    const { logout, userInfo: authUser } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('profile');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const profile = await apiService.getUserProfile();
+      setUserProfile(profile);
+    } catch (err) {
+      console.error('Failed to load user profile:', err);
+      setError('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    // For web, use window.confirm; for native, use Alert
+    const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm('Are you sure you want to logout?')
+      : true; // On profile page, just logout without confirmation
+    
+    if (!confirmed) return;
+
+    try {
+      console.log('[Profile] Logout button clicked, calling logout...');
+      await logout();
+      console.log('[Profile] Logout completed');
+    } catch (err) {
+      console.error('[Profile] Logout failed:', err);
+    }
+  };
 
   const userStats = [
     { label: t('stats.sold'), value: '47', change: '+12%', color: '#22c55e' },
@@ -51,17 +92,44 @@ export default function ProfileScreen() {
 
   const ProfileHeader = () => (
     <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 14, padding: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
         <View style={{ flex: 1 }}>
-          <ThemedText type="title">GamerPro</ThemedText>
-          <Text style={{ color: '#9CA3AF' }}>{t('header.memberSince', { date: 'Mar 2023' })}</Text>
+          <ThemedText type="title">{userProfile?.username || authUser?.preferred_username || 'User'}</ThemedText>
+          <Text style={{ color: '#9CA3AF' }}>{userProfile?.email || authUser?.email || ''}</Text>
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-            <Text style={{ color: '#FBBF24' }}>{t('header.rating', { rating: '4.8', count: 156 })}</Text>
-            <Text style={{ color: '#A78BFA' }}>{t('header.certified')}</Text>
+            <Text style={{ color: '#9CA3AF' }}>{t('header.memberSince', { date: userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A' })}</Text>
           </View>
+          
+          {/* Display authentication info */}
+          {authUser && (
+            <View style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+              <Text style={{ color: '#60A5FA', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>🔐 Authentication Info</Text>
+              <View style={{ gap: 4 }}>
+                <Text style={{ color: '#9CA3AF', fontSize: 11 }}>User ID: {authUser.sub?.substring(0, 20)}...</Text>
+                {authUser.name && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Name: {authUser.name}</Text>}
+                {authUser.given_name && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>First Name: {authUser.given_name}</Text>}
+                {authUser.family_name && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Last Name: {authUser.family_name}</Text>}
+                {authUser.preferred_username && <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Username: {authUser.preferred_username}</Text>}
+              </View>
+            </View>
+          )}
         </View>
         
+        {/* Logout Button */}
+        <Pressable
+          onPress={handleLogout}
+          style={({ pressed }) => ({
+            backgroundColor: pressed ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: 'rgba(239, 68, 68, 0.3)',
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 14 }}>🚪 Logout</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -86,9 +154,10 @@ export default function ProfileScreen() {
         <ThemedText type="defaultSemiBold">Informations personnelles</ThemedText>
         <View style={{ height: 10 }} />
         {[
-          ['Email', 'gamerpro@email.com'],
-          ['Téléphone', '+33 6 12 34 56 78'],
-          ['Localisation', 'Paris, France'],
+            ['Email', userProfile?.email || 'N/A'],
+            ['Prénom', userProfile?.firstName || 'N/A'],
+            ['Nom', userProfile?.lastName || 'N/A'],
+            ['ID', userProfile?.id?.substring(0, 8) || 'N/A'],
         ].map(([label, value]) => (
           <View key={label} style={{ marginBottom: 10 }}>
             <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{label}</Text>
@@ -155,9 +224,14 @@ export default function ProfileScreen() {
     </View>
   );
   const ModifyProfile = () => (
-    <Pressable style={{ backgroundColor: '#7c3aed', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }}>
-        <Text style={{ color: 'white', fontWeight: '600' }}>Modifier le profil</Text>
-    </Pressable>
+    <View style={{ flexDirection: 'row', gap: 12 }}>
+      <Pressable style={{ flex: 1, backgroundColor: '#7c3aed', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }}>
+        <Text style={{ color: 'white', fontWeight: '600', textAlign: 'center' }}>Modifier le profil</Text>
+      </Pressable>
+      <Pressable onPress={handleLogout} style={{ flex: 1, backgroundColor: '#ef4444', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }}>
+        <Text style={{ color: 'white', fontWeight: '600', textAlign: 'center' }}>Se déconnecter</Text>
+      </Pressable>
+    </View>
   );
 
   const TabsHeader = () => (
@@ -247,6 +321,26 @@ export default function ProfileScreen() {
     );
   }
 
+    if (loading) {
+      return (
+        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.tint} />
+          <Text style={{ color: theme.text, marginTop: 12 }}>Chargement du profil...</Text>
+        </ThemedView>
+      );
+    }
+
+    if (error) {
+      return (
+        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <Text style={{ color: '#ef4444', marginBottom: 12 }}>{error}</Text>
+          <Pressable onPress={loadUserProfile} style={{ backgroundColor: '#7c3aed', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }}>
+            <Text style={{ color: 'white', fontWeight: '600' }}>Réessayer</Text>
+          </Pressable>
+        </ThemedView>
+      );
+    }
+
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
@@ -257,14 +351,17 @@ export default function ProfileScreen() {
             <ProfileHeader />
             <StatsGrid />
             <InfoAndSkills />
+              <ModifyProfile />
           </>
         )}
         {activeSection === 'settings' && (
-          <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
+            <>
+              <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
             <ThemedText type="defaultSemiBold">Paramètres du compte</ThemedText>
             <Text style={{ color: '#9CA3AF', marginTop: 6 }}>Section des paramètres en développement...</Text>
           </View>
-
+              <ModifyProfile />
+            </>
         )}
       </ScrollView>
     </ThemedView>

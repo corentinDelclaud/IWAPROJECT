@@ -1,0 +1,27 @@
+server:
+  port: 8082
+  # Écouter uniquement sur localhost (non accessible de l'extérieur)
+  # En production/Docker, utiliser 0.0.0.0
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+spring:
+  application:
+    name: auth-service
+
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8085}
+  realm: IWA_NextLevel
+  client-id: auth-service
+  admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+
+user-service:
+  url: ${USER_SERVICE_URL:http://localhost:8081}
+
+logging:
+  level:
+    root: INFO
+    iwaproject.auth_service: DEBUG
+    org.keycloak: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

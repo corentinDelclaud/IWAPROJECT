@@ -39,6 +39,7 @@ export const Colors = {
     },
     dark: {
         text: '#ECEDEE',
+        textSecondary: '#9BA1A6',
         background: '#151718',
         tint: tintColorDark,
         icon: '#9BA1A6',
@@ -51,6 +52,8 @@ export const Colors = {
         blue: '#3b82f6',
         yellow: '#fbbf24',
         green: '#22c55e',
+            gradientStart: '#0b1220',
+            gradientEnd: '#151718',
     },
 };
 

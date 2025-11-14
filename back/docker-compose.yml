@@ -1,0 +1,261 @@
+version: '3.8'
+
+# ==============================================================================
+# DOCKER COMPOSE - IWA PROJECT
+# ==============================================================================
+# Ce fichier orchestre tous les microservices et leurs bases de données
+# Commande pour démarrer : docker-compose up -d
+# Commande pour arrêter : docker-compose down
+# ==============================================================================
+
+networks:
+  iwa-network:
+    driver: bridge
+
+volumes:
+  postgres_users_data:
+    driver: local
+  postgres_catalog_data:
+    driver: local
+  postgres_keycloak_data:
+    driver: local
+  keycloak_data:
+    driver: local
+
+services:
+  # ==============================================================================
+  # BASES DE DONNÉES
+  # ==============================================================================
+  
+  # PostgreSQL pour User Microservice
+  postgres-users:
+    image: postgres:16-alpine
+    container_name: iwa-postgres-users
+    environment:
+      POSTGRES_DB: iwa_users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_users_data:/var/lib/postgresql/data
+    networks:
+      - iwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d iwa_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # PostgreSQL pour Service Catalog
+  postgres-catalog:
+    image: postgres:16-alpine
+    container_name: iwa-postgres-catalog
+    environment:
+      POSTGRES_DB: iwa_catalog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_catalog_data:/var/lib/postgresql/data
+      #- ./init-catalog.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - iwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d iwa_catalog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # PostgreSQL pour Keycloak
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: iwa-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_keycloak_data:/var/lib/postgresql/data
+    networks:
+      - iwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==============================================================================
+  # KEYCLOAK - Serveur d'authentification
+  # ==============================================================================
+  
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    container_name: iwa-keycloak
+    command: start-dev --import-realm
+    environment:
+      # Identifiants admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      
+      # Configuration base de données
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_password
+      
+      # Configuration HTTP
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: 8085
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "8085:8085"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./keycloak-service/keycloak-config/realms:/opt/keycloak/data/import:ro
+    networks:
+      - iwa-network
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    # Note: healthcheck removed because the official Keycloak image doesn't include wget/curl
+    # and the previous shell-based check failed inside the container. If you need a healthcheck,
+    # consider extending the Keycloak image to add a small HTTP client, or add a sidecar container
+    # that performs the readiness probe.
+
+  # ==============================================================================
+  # MICROSERVICES
+  # ==============================================================================
+  
+  # Auth Service - Microservice d'authentification
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./auth-service/Dockerfile
+    image: iwa-auth-service:latest
+    container_name: iwa-auth-service
+    environment:
+      SERVER_PORT: 8082
+      SERVER_ADDRESS: 0.0.0.0
+      KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8085
+      KEYCLOAK_REALM: IWA_NextLevel
+    ports:
+      - "8082:8082"
+    networks:
+      - iwa-network
+    depends_on:
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8082/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # User Microservice - Gestion des utilisateurs
+  user-microservice:
+    build:
+      context: .
+      dockerfile: ./user-microservice/Dockerfile
+    image: iwa-user-microservice:latest
+    container_name: iwa-user-microservice
+    environment:
+      SERVER_PORT: 8081
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/iwa_users
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      KEYCLOAK_ISSUER_URI: http://keycloak:8085/realms/IWA_NextLevel
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
+    ports:
+      - "8081:8081"
+    networks:
+      - iwa-network
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Service Catalog - Gestion des produits
+  service-catalog:
+    build:
+      context: .
+      dockerfile: ./service-catalog/Dockerfile
+    image: iwa-service-catalog:latest
+    container_name: iwa-service-catalog
+    environment:
+      SERVER_PORT: 8083
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-catalog:5432/iwa_catalog
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "8083:8083"
+    networks:
+      - iwa-network
+    depends_on:
+      postgres-catalog:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8083/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # API Gateway - Point d'entrée unique
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
+    image: iwa-api-gateway:latest
+    container_name: iwa-api-gateway
+    environment:
+      SERVER_PORT: 8080
+      SERVER_ADDRESS: 0.0.0.0
+      SERVICES_AUTH_URL: http://auth-service:8082
+      SERVICES_USER_URL: http://user-microservice:8081
+      SERVICES_CATALOG_URL: http://service-catalog:8083
+      SERVICES_KEYCLOAK_URL: http://keycloak:8085
+    ports:
+      - "8080:8080"
+    networks:
+      - iwa-network
+    depends_on:
+      auth-service:
+        condition: service_started
+      user-microservice:
+        condition: service_started
+      service-catalog:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

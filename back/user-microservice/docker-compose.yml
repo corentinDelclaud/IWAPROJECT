@@ -1,0 +1,26 @@
+# Docker Compose for User Microservice Development
+# This file provides PostgreSQL and Kafka for local development
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: iwa-user-postgres
+    environment:
+      POSTGRES_DB: iwa_users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"  # Map host 5433 -> container 5432 to avoid conflict with other Postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - iwa-network
+
+networks:
+  iwa-network:
+    name: iwa-network
+    external: true
+
+volumes:
+  postgres_data:

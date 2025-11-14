@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: service-catalog-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: Service
+      POSTGRES_USER: corentin
+      POSTGRES_PASSWORD: 21032004
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U corentin -d service_catalog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local

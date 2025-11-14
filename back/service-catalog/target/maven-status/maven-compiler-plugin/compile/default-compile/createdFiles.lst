@@ -1,0 +1,9 @@
+com\iwaproject\product\service\ProductService.class
+com\iwaproject\product\controller\ProductController.class
+com\iwaproject\product\repository\ProductRepository.class
+com\iwaproject\product\dto\ProductDTO.class
+com\iwaproject\product\model\ServiceType.class
+com\iwaproject\product\model\Product.class
+com\iwaproject\product\dto\CreateProductRequest.class
+com\iwaproject\product\model\Game.class
+com\iwaproject\product\ProductServiceApplication.class

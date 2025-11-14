@@ -1,0 +1,53 @@
+# Ignorer les dossiers target de Maven
+**/target/
+target/
+
+# Ignorer les fichiers de build
+*.class
+*.jar
+!**/target/*.jar
+
+# Ignorer les dossiers node_modules si présents
+**/node_modules/
+
+# Ignorer les fichiers de configuration IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# Ignorer les fichiers de log
+*.log
+
+# Ignorer les fichiers temporaires
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Ignorer les fichiers Git
+.git/
+.gitignore
+.gitattributes
+
+# Ignorer les fichiers Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Ignorer les scripts
+*.sh
+
+# Ignorer la documentation
+*.md
+README.md
+
+# Ignorer les fichiers de test
+**/test/
+**/*Test.java
+**/*Tests.java

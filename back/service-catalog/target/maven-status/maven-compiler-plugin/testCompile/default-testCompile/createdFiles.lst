@@ -1,0 +1,3 @@
+com\iwaproject\product\controller\ProductControllerIntegrationTest.class
+com\iwaproject\product\e2e\ProductE2ETest.class
+com\iwaproject\product\service\ProductServiceTest.class

@@ -1,203 +1,309 @@
-# Backend - API Gateway Standalone
+# 🚀 IWA Project - Backend
 
-## Vue d'ensemble
+Architecture microservices complète avec Spring Boot, Keycloak et PostgreSQL.
 
-Ce projet contient uniquement une API Gateway Spring Boot qui peut servir de point d'entrée unique pour votre architecture. L'API Gateway peut être utilisée pour router les requêtes, gérer les CORS, et servir de proxy intelligent.
+## 📋 Table des matières
 
-## Architecture
+- [Démarrage rapide](#-démarrage-rapide)
+- [Architecture](#-architecture)
+- [Services disponibles](#-services-disponibles)
+- [Documentation](#-documentation)
+- [Développement](#-développement)
+
+---
+
+## 🎯 Démarrage rapide
+
+### Option 1 : Docker (Recommandé) 🐳
+
+**Tout démarrer en une commande :**
+
+```bash
+./start-docker.sh
+```
+
+**Vérifier que tout fonctionne :**
+
+```bash
+./check-health.sh
+```
+
+**Arrêter tous les services :**
+
+```bash
+./stop-docker.sh
+```
+
+### Option 2 : Avec Make
+
+```bash
+make help    # Afficher toutes les commandes disponibles
+make start   # Démarrer tous les services
+make health  # Vérifier la santé des services
+make logs    # Voir les logs
+make stop    # Arrêter tous les services
+```
+
+### Option 3 : Développement manuel (Maven)
+
+Voir le [QUICK_START_GUIDE.md](./QUICK_START_GUIDE.md)
+
+---
+
+## 🏗️ Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   API Gateway   │
-│   (React/RN)    │◄──►│   (Port: 8080)  │
-└─────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    API Gateway :8080                    │
+│              (Point d'entrée unique)                    │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+        ┌──────────┼──────────┬──────────────┐
+        │          │          │              │
+        ▼          ▼          ▼              ▼
+   ┌────────┐ ┌────────┐ ┌────────┐   ┌──────────┐
+   │  Auth  │ │  User  │ │Catalog │   │ Keycloak │
+   │ :8082  │ │ :8081  │ │ :8083  │   │  :8085   │
+   └────┬───┘ └───┬────┘ └───┬────┘   └─────┬────┘
+        │         │          │              │
+        ▼         ▼          ▼              ▼
+   ┌────────────────────────────────────────────┐
+   │        Bases de données PostgreSQL         │
+   │  • Users DB      (port 5433)              │
+   │  • Catalog DB    (port 5434)              │
+   │  • Keycloak DB   (port 5435)              │
+   └────────────────────────────────────────────┘
 ```
 
-### Technologies utilisées
-- **Spring Boot 2.7.14** - Framework principal
-- **Spring Cloud Gateway** - API Gateway réactive
-- **Maven** - Gestion des dépendances
+---
 
-## Prérequis
+## 📊 Services disponibles
 
-- **Java 11** ou supérieur
-- **Maven 3.6+**
-- **Git**
+| Service | Port | Description | Swagger | Health |
+|---------|------|-------------|---------|--------|
+| **API Gateway** | 8080 | Point d'entrée unique | - | [Health](http://localhost:8080/actuator/health) |
+| **Auth Service** | 8082 | Authentification | [Swagger](http://localhost:8082/swagger-ui/index.html) | [Health](http://localhost:8082/actuator/health) |
+| **User Microservice** | 8081 | Gestion utilisateurs | [Swagger](http://localhost:8081/swagger-ui/index.html) | [Health](http://localhost:8081/actuator/health) |
+| **Service Catalog** | 8083 | Gestion produits | [Swagger](http://localhost:8083/swagger-ui/index.html) | [Health](http://localhost:8083/actuator/health) |
+| **Keycloak** | 8085 | Serveur d'auth | [Admin Console](http://localhost:8085) | [Health](http://localhost:8085/health/ready) |
 
-## Structure du projet
+### Identifiants Keycloak
+- **URL**: http://localhost:8085
+- **Username**: `admin`
+- **Password**: `admin`
+
+---
+
+## 📚 Documentation
+
+### Guides principaux
+- 🐳 **[DOCKER_README.md](./DOCKER_README.md)** - Guide complet Docker
+- 🚀 **[QUICK_START_GUIDE.md](./QUICK_START_GUIDE.md)** - Guide de démarrage rapide
+- 📦 **[CONTAINERISATION_SUMMARY.md](./CONTAINERISATION_SUMMARY.md)** - Résumé de la containerisation
+
+### Documentation par service
+- [API Gateway README](./api-gateway/README.md)
+- [Auth Service README](./auth-service/README.md)
+- [User Microservice README](./user-microservice/README.md)
+- [Service Catalog README](./service-catalog/README.md)
+- [Keycloak Service README](./keycloak-service/README.md)
+
+---
+
+## 🛠️ Développement
+
+### Prérequis
+
+- **Java** 21
+- **Maven** 3.9+
+- **Docker** 20.10+
+- **Docker Compose** 2.0+
+
+### Structure du projet
 
 ```
 back/
-├── pom.xml                     # POM parent
-└── api-gateway/                # API Gateway standalone
-    ├── pom.xml
-    └── src/main/
-        ├── java/com/iwaproject/gateway/
-        │   ├── ApiGatewayApplication.java
-        │   ├── config/         # Configuration CORS et routes
-        │   ├── controller/     # Endpoints de santé
-        │   └── filter/         # Filtres de logging et authentification
-        └── resources/
-            ├── application.yml # Configuration des routes
-            └── bootstrap.yml
+├── api-gateway/          # API Gateway (Spring Cloud Gateway)
+├── auth-service/         # Service d'authentification
+├── user-microservice/    # Gestion des utilisateurs
+├── service-catalog/      # Catalogue de produits
+├── keycloak-service/     # Configuration Keycloak
+├── docker-compose.yml    # Orchestration complète
+├── start-docker.sh       # Script de démarrage
+├── stop-docker.sh        # Script d'arrêt
+├── check-health.sh       # Vérification de santé
+├── test-integration.sh   # Tests d'intégration
+└── Makefile             # Commandes simplifiées
 ```
 
-## Guide de démarrage
-
-### Étape 1: Compilation du projet
+### Commandes Docker
 
 ```bash
-cd back
+# Démarrer tous les services
+docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f
+
+# Voir les logs d'un service spécifique
+docker-compose logs -f api-gateway
+
+# Arrêter tous les services
+docker-compose down
+
+# Reconstruire les images
+docker-compose build
+
+# Reconstruire et redémarrer
+docker-compose up -d --build
+
+# Voir l'état des conteneurs
+docker-compose ps
+```
+
+### Commandes Maven (développement local)
+
+```bash
+# Depuis la racine du projet
 mvn clean install
-```
 
-### Étape 2: Démarrage de l'API Gateway
-
-```bash
+# Depuis un service spécifique
 cd api-gateway
 mvn spring-boot:run
 ```
 
-L'API Gateway sera accessible sur http://localhost:8080
+### Tests
 
-## Configuration
-
-### API Gateway (Port: 8080)
-- **URL** : http://localhost:8080
-- **Health Check** : http://localhost:8080/actuator/health
-- **Routes configurées** : http://localhost:8080/actuator/gateway/routes
-
-## Endpoints disponibles
-
-### Endpoints de santé et monitoring
 ```bash
-# Santé de l'API Gateway
-GET http://localhost:8080/actuator/health
+# Tests unitaires
+mvn test
 
-# Information sur les routes configurées
-GET http://localhost:8080/actuator/gateway/routes
+# Tests d'intégration (avec Docker)
+./test-integration.sh
 
-# Métriques
-GET http://localhost:8080/actuator/metrics
+# Vérification de santé
+./check-health.sh
 ```
 
-## Configuration des routes
+---
 
-L'API Gateway peut être configurée pour router vers d'autres services en modifiant le fichier `api-gateway/src/main/resources/application.yml`.
+## 🔧 Configuration
 
-Exemple de configuration de routes :
-```yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: exemple-service
-          uri: http://localhost:8081
-          predicates:
-            - Path=/api/exemple/**
-```
+### Variables d'environnement
 
-## Développement
+Copiez `.env.example` vers `.env` et modifiez selon vos besoins :
 
-### Ajout de nouvelles routes
-
-Pour ajouter de nouvelles routes, éditez le fichier `api-gateway/src/main/resources/application.yml` :
-
-```yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: nouveau-service
-          uri: http://localhost:8085
-          predicates:
-            - Path=/api/nouveau/**
-          filters:
-            - name: LoggingFilter  # Optionnel : ajout de logs
-```
-
-### Configuration CORS
-
-La configuration CORS est déjà présente dans `api-gateway/src/main/java/com/iwaproject/gateway/config/CorsConfig.java` et permet les appels depuis :
-- `http://localhost:*`
-- `exp://*` (pour Expo/React Native)
-- `https://*.expo.dev`
-
-### Filtres disponibles
-
-L'API Gateway inclut plusieurs filtres préconfiguré :
-- **LoggingFilter** : Trace toutes les requêtes avec des IDs uniques
-- **AuthenticationFilter** : Prêt pour l'authentification JWT (à configurer)
-
-## Monitoring et Debug
-
-### Vérification de l'état du service
 ```bash
-# Vérifier que le port est utilisé
-netstat -an | findstr :8080
-
-# Tester la connectivité
-curl http://localhost:8080/actuator/health
+cp .env.example .env
 ```
 
-### Logs
-- L'API Gateway logge au niveau DEBUG
-- Chaque requête est tracée avec un ID unique pour faciliter le debugging
+### Ports utilisés
 
-## Dépannage
+| Port | Service |
+|------|---------|
+| 8080 | API Gateway |
+| 8081 | User Microservice |
+| 8082 | Auth Service |
+| 8083 | Service Catalog |
+| 8085 | Keycloak |
+| 5433 | PostgreSQL Users |
+| 5434 | PostgreSQL Catalog |
+| 5435 | PostgreSQL Keycloak |
 
-### Problèmes courants
+---
 
-#### Port déjà utilisé
+## 🐛 Dépannage
+
+### Les services ne démarrent pas
+
 ```bash
-# Identifier le processus utilisant le port 8080
-netstat -ano | findstr :8080
+# Vérifier les logs
+docker-compose logs -f
+
+# Vérifier l'état
+docker-compose ps
+
+# Reconstruire proprement
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
-#### Service ne démarre pas
-1. Vérifier que Java 11+ est installé : `java -version`
-2. Vérifier que Maven est installé : `mvn -version`
-3. Recompiler le service : `mvn clean compile`
-4. Vérifier les logs de démarrage
+### Port déjà utilisé
 
-## Utilisation en tant que Proxy
+Modifiez le port dans `docker-compose.yml` :
 
-L'API Gateway peut servir de proxy vers d'autres services. Exemples d'utilisation :
-
-### Proxy vers des APIs externes
 ```yaml
-- id: external-api
-  uri: https://api.externe.com
-  predicates:
-    - Path=/external/**
-  filters:
-    - RewritePath=/external/(?<segment>.*), /${segment}
+ports:
+  - "8081:8080"  # Utiliser 8081 au lieu de 8080
 ```
 
-### Proxy vers des microservices locaux
-```yaml
-- id: microservice-local
-  uri: http://localhost:3000
-  predicates:
-    - Path=/api/local/**
+### Problèmes de connexion à Keycloak
+
+```bash
+# Vérifier que Keycloak est démarré
+docker-compose logs keycloak
+
+# Attendre le démarrage complet (peut prendre 1-2 minutes)
+./check-health.sh
 ```
 
-## Évolution du projet
+---
 
-Cette API Gateway peut facilement évoluer pour :
-1. **Ajouter l'authentification** : Intégrer JWT, OAuth2, etc.
-2. **Ajouter des microservices** : Router vers de nouveaux services
-3. **Ajouter du load balancing** : Distribuer la charge entre plusieurs instances
-4. **Ajouter de la sécurité** : Rate limiting, validation des requêtes, etc.
+## 📦 Build et Déploiement
 
-### Prochaines étapes possibles
-- Intégration avec un système d'authentification (Keycloak, Auth0, etc.)
-- Ajout de microservices backend
-- Configuration d'une base de données
-- Déploiement sur le cloud
+### Build des images Docker
 
-Cette architecture minimaliste est **idéale pour** :
-- Un projet en phase de démarrage
-- Une API Gateway standalone
-- Un point d'entrée simple pour des services externes
-- Un environnement de développement léger
+```bash
+# Build de tous les services
+docker-compose build
+
+# Build d'un service spécifique
+docker-compose build api-gateway
+```
+
+### Tag et Push (pour un registry)
+
+```bash
+# Tagging
+docker tag iwa-api-gateway:latest your-registry/iwa-api-gateway:1.0.0
+
+# Push
+docker push your-registry/iwa-api-gateway:1.0.0
+```
+
+---
+
+## 🤝 Contribution
+
+1. Créer une branche pour votre fonctionnalité
+2. Faire vos modifications
+3. Tester avec `./test-integration.sh`
+4. Créer une Pull Request
+
+---
+
+## 📄 Licence
+
+[À définir]
+
+---
+
+## 👥 Équipe
+
+[À compléter]
+
+---
+
+## 🔗 Liens utiles
+
+- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
+- [Spring Cloud Gateway](https://spring.io/projects/spring-cloud-gateway)
+- [Keycloak Documentation](https://www.keycloak.org/documentation)
+- [Docker Documentation](https://docs.docker.com/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+
+---
+
+**Version** : 1.0  
+**Dernière mise à jour** : 10 novembre 2025

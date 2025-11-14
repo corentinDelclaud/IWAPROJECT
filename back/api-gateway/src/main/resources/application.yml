@@ -1,11 +1,35 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: api-gateway
+
   cloud:
     gateway:
+      # Configuration des routes
+      routes:
+        # Route pour le service d'authentification
+        - id: auth-service
+          uri: ${services.auth.url}
+          predicates:
+            - Path=/auth/**
+          filters:
+            - RewritePath=/auth/(?<segment>.*), /$\{segment}
+
+        # Route pour le service utilisateur
+        - id: user-service
+          uri: ${services.user.url}
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/$\{segment}
+
+        # Route pour le service produit/catalog
+        - id: product-service
+          uri: ${services.product.url}
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - RewritePath=/api/products/(?<segment>.*), /api/products/$\{segment}
+
       # Configuration globale CORS
       globalcors:
         cors-configurations:
@@ -26,33 +50,53 @@ spring:
             allowCredentials: true
             maxAge: 3600
 
-      # Routes d'exemple (désactivées par défaut)
-      # Décommentez et modifiez selon vos besoins
-      # routes:
-      #   - id: exemple-service
-      #     uri: http://localhost:8081
-      #     predicates:
-      #       - Path=/api/exemple/**
-      #     filters:
-      #       - name: LoggingFilter
+      # Default filters pour toutes les routes
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+            methods: GET,POST
+            backoff:
+              firstBackoff: 10ms
+              maxBackoff: 50ms
+              factor: 2
+              basedOnPreviousValue: false
+
+# URLs des microservices backend (internes)
+services:
+  auth:
+    url: http://service-auth:8082
+  user:
+    url: http://service-user:8081
+  product:
+    url: http://service-catalog:8083
+  keycloak:
+    url: http://localhost:9090
 
 # Configuration du monitoring
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,routes,metrics
+        include: health,info,gateway,routes,metrics,prometheus
   endpoint:
     health:
       show-details: always
     gateway:
       enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 # Configuration des logs
 logging:
   level:
+    root: INFO
     com.iwaproject.gateway: DEBUG
-    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway: DEBUG
     org.springframework.web.cors: DEBUG
+    org.springframework.security: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

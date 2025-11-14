@@ -1,0 +1,21 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: iwa-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "9090:8080"
+    volumes:
+      - ../../keycloak-config:/opt/keycloak/data/import:ro
+      # Mount the webhook extension to auto-sync users on registration
+      - ../keycloak-webhook-extension/target/keycloak-webhook-extension-1.0.0.jar:/opt/keycloak/providers/keycloak-webhook-extension-1.0.0.jar
+    networks:
+      - iwa-network
+
+networks:
+  iwa-network:
+    name: iwa-network
+    external: true
