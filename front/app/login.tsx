@@ -11,39 +11,51 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/theme';
+import { GradientBackground } from '@/components/GradientBackground';
 
 export default function LoginScreen() {
   const { login, isLoading } = useAuth();
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleLogin = async () => {
-    try {
-      setIsAuthenticating(true);
-      await login();
-      router.replace('/(tabs)');
-    } catch (error) {
-      Alert.alert(
-        'Login Failed',
-        'Unable to authenticate. Please try again.',
-        [{ text: 'OK' }]
-      );
-      console.error('Login error:', error);
-    } finally {
-      setIsAuthenticating(false);
-    }
+  const handleLogin = () => {
+    // Confirm with the user before redirecting to Keycloak
+    Alert.alert(
+      'Redirection',
+      "Vous allez être redirigé vers Keycloak pour vous authentifier.",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Continuer',
+          onPress: async () => {
+            try {
+              setIsAuthenticating(true);
+              await login();
+              router.replace('/(tabs)');
+            } catch (error) {
+              Alert.alert(
+                'Échec de la connexion',
+                "Impossible d'authentifier. Veuillez réessayer.",
+                [{ text: 'OK' }]
+              );
+              console.error('Login error:', error);
+            } finally {
+              setIsAuthenticating(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
-    <LinearGradient
-      colors={[Colors.dark.gradientStart, Colors.dark.gradientEnd]}
-      style={styles.container}
-    >
+    <GradientBackground>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome to IWA</Text>
+          <Text style={styles.title}>Bienvenue sur NextLevel !</Text>
           <Text style={styles.subtitle}>
-            Sign in with your Keycloak account to continue
+            Veuillez vous connecter pour pouvoir accéder à nos services.
           </Text>
         </View>
 
@@ -52,26 +64,27 @@ export default function LoginScreen() {
             style={[styles.loginButton, isAuthenticating && styles.loginButtonDisabled]}
             onPress={handleLogin}
             disabled={isAuthenticating || isLoading}
+            accessibilityLabel="Se connecter avec Keycloak"
           >
             {isAuthenticating || isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={Colors.dark.tint} />
             ) : (
-              <Text style={styles.loginButtonText}>Sign In with Keycloak</Text>
+              <Text style={styles.loginButtonText}>Se connecter</Text>
             )}
           </TouchableOpacity>
 
           <Text style={styles.helpText}>
-            You will be redirected to Keycloak for secure authentication
+            Vous allez être redirigé·e vers Keycloak pour l'authentification.
           </Text>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Don't have an account? Contact your administrator
+            Un problème avec la connexion ? Contactez le support.
           </Text>
         </View>
       </View>
-    </LinearGradient>
+    </GradientBackground>
   );
 }
 
@@ -97,7 +110,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.dark.textSecondary,
+    color: Colors.dark.text,
     textAlign: 'center',
     opacity: 0.8,
   },
@@ -105,7 +118,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   loginButton: {
-    backgroundColor: Colors.dark.tint,
+    backgroundColor: '#401c87',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -115,12 +128,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    borderWidth: 2,
+    borderColor: Colors.dark.purple,
   },
   loginButtonDisabled: {
     opacity: 0.6,
   },
   loginButtonText: {
-    color: '#fff',
+    color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '600',
   },
