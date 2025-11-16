@@ -60,12 +60,17 @@ export default function RootLayout() {
 
       const inAuthGroup = segments[0] === '(tabs)';
 
+      // Allow a small whitelist of routes that should be accessible even when authenticated
+      // e.g. payment redirect pages that live at root: /payment-success, /payment-error
+      const allowedOutsideRoutes = ['payment-success', 'payment-error'];
+      const isAllowedOutside = segments.length > 0 && allowedOutsideRoutes.includes(segments[0]);
+
       if (!isAuthenticated && inAuthGroup) {
         // Redirect to login if not authenticated
         console.log('[Navigation] User not authenticated, redirecting to login');
         router.replace('/login' as any);
-      } else if (isAuthenticated && !inAuthGroup) {
-        // Redirect to tabs if authenticated
+      } else if (isAuthenticated && !inAuthGroup && !isAllowedOutside) {
+        // Redirect to tabs if authenticated and not accessing an allowed outside route
         console.log('[Navigation] User authenticated, redirecting to tabs');
         router.replace('/(tabs)');
       }

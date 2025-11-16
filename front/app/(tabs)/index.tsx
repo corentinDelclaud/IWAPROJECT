@@ -56,6 +56,21 @@ export default function HomeScreen() {
                         <ThemedText style={{ color: '#9CA3AF' }}>{t('common:home.reviews.subtitle')}</ThemedText>
                     </ThemedView>
                 </Link>
+                
+                {/* Test links for Stripe redirect pages */}
+                <Link href={'/payment-success' as any} style={{ display: 'flex' }}>
+                    <ThemedView style={{ backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.18)', borderWidth: 1, padding: 16, borderRadius: 12 }}>
+                        <ThemedText style={{ color: '#16A34A', fontWeight: '700' }}>Test: Payment success</ThemedText>
+                        <ThemedText style={{ color: '#9CA3AF' }}>Open the success redirect page</ThemedText>
+                    </ThemedView>
+                </Link>
+
+                <Link href={'/payment-error' as any} style={{ display: 'flex' }}>
+                    <ThemedView style={{ backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.16)', borderWidth: 1, padding: 16, borderRadius: 12 }}>
+                        <ThemedText style={{ color: '#DC2626', fontWeight: '700' }}>Test: Payment error</ThemedText>
+                        <ThemedText style={{ color: '#9CA3AF' }}>Open the error redirect page</ThemedText>
+                    </ThemedView>
+                </Link>
             </ThemedView>
         </ScrollView>
     );
