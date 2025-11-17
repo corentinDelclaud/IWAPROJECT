@@ -186,3 +186,52 @@ export async function fetchProductsByFilters(filters: {
     }
 }
 
+/**
+ * Créer un nouveau produit
+ * @param product - Les données du produit à créer
+ * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ */
+export async function createProduct(product: Omit<BackendProduct, 'idService'>): Promise<Product | null> {
+    try {
+        const response = await fetch(API_BASE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(product),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: BackendProduct = await response.json();
+        return mapBackendProductToFrontend(data);
+    } catch (error) {
+        console.error('Error creating product:', error);
+        return null;
+    }
+}
+
+/**
+ * Supprimer un nouveau produit
+ * @param product - Les données du produit à créer
+ * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ */
+export async function deleteProduct(id: number): Promise<boolean> {
+    try {
+        const url = `${API_BASE_URL}/${id}`;
+        const response = await fetch(url, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        return false;
+    }
+}
