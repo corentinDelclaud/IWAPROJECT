@@ -1,4 +1,4 @@
-package com.iwaproject.api_gateway;
+package com.iwaproject.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,9 +1,35 @@
 spring:
   application:
     name: api-gateway
-  
+
   cloud:
     gateway:
+      # Configuration des routes
+      routes:
+        # Route pour le service d'authentification
+        - id: auth-service
+          uri: ${services.auth.url}
+          predicates:
+            - Path=/auth/**
+          filters:
+            - RewritePath=/auth/(?<segment>.*), /$\{segment}
+
+        # Route pour le service utilisateur
+        - id: user-service
+          uri: ${services.user.url}
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/$\{segment}
+
+        # Route pour le service produit/catalog
+        - id: product-service
+          uri: ${services.product.url}
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - RewritePath=/api/products/(?<segment>.*), /api/products/$\{segment}
+
       # Configuration globale CORS
       globalcors:
         cors-configurations:
@@ -23,7 +49,7 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
-      
+
       # Default filters pour toutes les routes
       default-filters:
         - name: Retry
@@ -40,13 +66,14 @@ spring:
 # URLs des microservices backend (internes)
 services:
   auth:
-    url: http://localhost:8082
+    url: http://service-auth:8082
   user:
-    url: http://localhost:8081
+    url: http://service-user:8081
+  product:
+    url: http://service-catalog:8083
   keycloak:
     url: http://localhost:9090
-  product:
-    url: http://localhost:8083
+
 # Configuration du monitoring
 management:
   endpoints:
@@ -68,7 +95,7 @@ logging:
   level:
     root: INFO
     com.iwaproject.gateway: DEBUG
-    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway: DEBUG
     org.springframework.web.cors: DEBUG
     org.springframework.security: DEBUG
   pattern:
