@@ -29,3 +29,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# node_modules
+node_modules/
+stripe/node_modules/
+**/node_modules/
