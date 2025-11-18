@@ -7,6 +7,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -22,6 +25,9 @@ public class SecurityConfig {
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
     private String issuerUri;
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:#{null}}")
+    private String jwkSetUri;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -55,11 +61,36 @@ public class SecurityConfig {
         // Only enable OAuth2 Resource Server if issuer-uri is configured
         if (issuerUri != null && !issuerUri.isEmpty()) {
             http.oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                    .jwt(jwt -> jwt
+                            .decoder(jwtDecoder())
+                            .jwtAuthenticationConverter(jwtAuthenticationConverter()))
             );
         }
 
         return http.build();
+    }
+
+    /**
+     * Custom JWT decoder that uses explicit JWK Set URI
+     * This allows the issuer-uri to be different from the JWK Set URI,
+     * which is necessary when running in Docker where services communicate
+     * via internal hostnames (e.g., 'keycloak') but tokens are issued with
+     * public URLs (e.g., 'localhost').
+     */
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        if (jwkSetUri == null || jwkSetUri.isEmpty()) {
+            throw new IllegalStateException("JWK Set URI must be configured");
+        }
+        
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        
+        // Set the expected issuer for validation
+        if (issuerUri != null && !issuerUri.isEmpty()) {
+            decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuerUri));
+        }
+        
+        return decoder;
     }
 
     /**
