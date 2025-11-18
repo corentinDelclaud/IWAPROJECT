@@ -1,0 +1,105 @@
+### Stripe Service API Tests
+### Use with VS Code REST Client extension
+
+@baseUrl = http://localhost:8090/api/stripe
+@accountId = acct_1234567890
+@priceId = price_1234567890
+
+### Health Check
+GET http://localhost:8090/actuator/health
+
+###
+
+### 1. Create Connect Account
+POST {{baseUrl}}/connect-account
+Content-Type: application/json
+
+{
+  "email": "merchant@example.com"
+}
+
+###
+
+### 2. Create Account Link for Onboarding
+POST {{baseUrl}}/account-link
+Content-Type: application/json
+
+{
+  "accountId": "{{accountId}}"
+}
+
+###
+
+### 3. Get Account Status
+GET {{baseUrl}}/account-status/{{accountId}}
+
+###
+
+### 4. Create Product
+POST {{baseUrl}}/product
+Content-Type: application/json
+
+{
+  "productName": "Premium Widget",
+  "productDescription": "A high-quality product for testing",
+  "productPrice": 2999,
+  "accountId": "{{accountId}}"
+}
+
+###
+
+### 5. Get Products for Account
+GET {{baseUrl}}/products/{{accountId}}
+
+###
+
+### 6. Get Platform Products
+GET {{baseUrl}}/products/platform
+
+###
+
+### 7. Create Checkout Session
+POST {{baseUrl}}/checkout-session
+Content-Type: application/json
+
+{
+  "accountId": "{{accountId}}",
+  "priceId": "{{priceId}}"
+}
+
+###
+
+### 8. Subscribe to Platform
+POST {{baseUrl}}/subscribe-platform
+Content-Type: application/json
+
+{
+  "accountId": "{{accountId}}"
+}
+
+###
+
+### 9. Create Portal Session
+POST {{baseUrl}}/portal-session
+Content-Type: application/json
+
+{
+  "sessionId": "cs_test_example_session_id"
+}
+
+###
+
+### 10. Test Webhook (requires Stripe-Signature header)
+# Note: This needs to be called by Stripe, not manually
+# Use Stripe CLI: stripe trigger checkout.session.completed
+POST {{baseUrl}}/webhook
+Content-Type: application/json
+Stripe-Signature: test_signature
+
+{
+  "id": "evt_test",
+  "object": "event",
+  "type": "checkout.session.completed"
+}
+
+###

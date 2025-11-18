@@ -6,6 +6,7 @@ COPY ./pom.xml ./pom.xml
 COPY ./api-gateway ./api-gateway
 COPY ./auth-service ./auth-service
 COPY ./user-microservice ./user-microservice
+COPY ./stripe-service ./stripe-service
 RUN mvn -q -e -DskipTests -pl auth-service -am clean package
 
 FROM eclipse-temurin:21-jre-alpine

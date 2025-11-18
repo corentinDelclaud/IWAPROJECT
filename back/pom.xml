@@ -30,6 +30,7 @@
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>user-microservice</module>
+        <module>stripe-service</module>
     </modules>
 
     <dependencyManagement>

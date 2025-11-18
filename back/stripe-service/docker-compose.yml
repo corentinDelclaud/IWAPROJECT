@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  stripe-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stripe-service
+    ports:
+      - "8090:8090"
+    environment:
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PLATFORM_PRICE_ID=${STRIPE_PLATFORM_PRICE_ID:-}
+      - APP_DOMAIN=${APP_DOMAIN:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+    networks:
+      - iwa-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  iwa-network:
+    external: true
+    name: back_default

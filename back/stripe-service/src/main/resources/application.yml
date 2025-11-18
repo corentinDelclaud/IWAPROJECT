@@ -1,0 +1,24 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: stripe-service
+
+# Stripe Configuration
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_your_key_here}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_your_key_here}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  platform-price-id: ${STRIPE_PLATFORM_PRICE_ID:}
+  
+# Domain Configuration
+app:
+  domain: ${APP_DOMAIN:http://localhost:3000}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
+# Logging
+logging:
+  level:
+    com.iwaproject.stripe: DEBUG
+    com.stripe: INFO
