@@ -1,2 +1,3 @@
-com/iwaproject/keycloak/WebhookEventListenerProvider.class
-com/iwaproject/keycloak/WebhookEventListenerProviderFactory.class
+iwaproject/keycloak/webhook/WebhookEventListenerProvider$1.class
+iwaproject/keycloak/webhook/WebhookEventListenerProvider.class
+iwaproject/keycloak/webhook/WebhookEventListenerProviderFactory.class
