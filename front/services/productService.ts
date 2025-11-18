@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
-        return 'http://162.38.39.105:8080';
+        return 'http://162.38.38.118:8080';
     }
     // Pour iOS simulator ou web
     return 'http://localhost:8080';
@@ -233,5 +233,31 @@ export async function deleteProduct(id: number): Promise<boolean> {
     } catch (error) {
         console.error('Error deleting product:', error);
         return false;
+    }
+}
+
+/**
+ * Récupère les produits d'un fournisseur spécifique
+ * @param idProvider - L'identifiant du fournisseur
+ * @returns Promise<Product[]> - Liste des produits du fournisseur
+ */
+export async function fetchProductsByProvider(idProvider: number): Promise<Product[]> {
+    try {
+        const url = `${API_BASE_URL}/provider/${idProvider}`;
+        console.log(`Fetching products for provider ${idProvider} from:`, url);
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: BackendProduct[] = await response.json();
+        console.log(`Received ${data.length} products for provider ${idProvider}`);
+
+        return data.map(mapBackendProductToFrontend);
+    } catch (error) {
+        console.error(`Error fetching products for provider ${idProvider}:`, error);
+        return [];
     }
 }
