@@ -12,7 +12,7 @@ interface UserProfile {
 }
 
 class ApiService {
-  private baseUrl: string;
+  private readonly baseUrl: string;
 
   constructor() {
     this.baseUrl = API_CONFIG.baseUrl;
@@ -59,7 +59,7 @@ class ApiService {
       }
 
       const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
+      if (contentType?.includes('application/json')) {
         return await response.json();
       }
 

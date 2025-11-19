@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Pressable, Text, View, ScrollView, Modal, TextInput, Alert } from 'react-native';
+import { Pressable, Text, View, ScrollView, Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
@@ -7,7 +7,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from 'react-i18next';
 import { fetchProductsByProvider, deleteProduct } from '@/services/productService';
 import { apiService } from '@/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserService {
     id: number;
@@ -36,11 +35,9 @@ export default function ServicesManagementScreen() {
 
     const initializeAndLoadServices = async () => {
         try {
-            // Récupérer l'ID utilisateur depuis le profil
             const profile = await apiService.getUserProfile();
-            const userIdNum = parseInt(profile.id);
+            const userIdNum = Number.parseInt(profile.id);
             setUserId(userIdNum);
-
             await loadUserProducts(userIdNum);
         } catch (error) {
             console.error('Error initializing:', error);
@@ -79,7 +76,21 @@ export default function ServicesManagementScreen() {
         return services.filter(s => !s.online);
     }, [activeTab, services]);
 
-    const handleDeleteService = async (id: number) => {
+    const performDeleteService = async (id: number) => {
+        try {
+            const success = await deleteProduct(id);
+            if (success) {
+                setServices(prev => prev.filter(s => s.id !== id));
+                Alert.alert('Succès', 'Service supprimé');
+            } else {
+                Alert.alert('Erreur', 'Impossible de supprimer le service');
+            }
+        } catch (error) {
+            Alert.alert('Erreur', 'Une erreur est survenue');
+        }
+    };
+
+    const handleDeleteService = (id: number) => {
         Alert.alert(
             'Confirmation',
             'Voulez-vous vraiment supprimer ce service ?',
@@ -88,19 +99,7 @@ export default function ServicesManagementScreen() {
                 {
                     text: 'Supprimer',
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const success = await deleteProduct(id);
-                            if (success) {
-                                setServices(prev => prev.filter(s => s.id !== id));
-                                Alert.alert('Succès', 'Service supprimé');
-                            } else {
-                                Alert.alert('Erreur', 'Impossible de supprimer le service');
-                            }
-                        } catch (error) {
-                            Alert.alert('Erreur', 'Une erreur est survenue');
-                        }
-                    },
+                    onPress: () => performDeleteService(id),
                 },
             ]
         );
@@ -117,7 +116,6 @@ export default function ServicesManagementScreen() {
     return (
         <ThemedView style={{ flex: 1 }}>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-                {/* Tabs */}
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                     {(['all', 'available', 'unavailable'] as const).map(tab => (
                         <Pressable
@@ -128,7 +126,7 @@ export default function ServicesManagementScreen() {
                                 paddingVertical: 10,
                                 paddingHorizontal: 16,
                                 borderRadius: 8,
-                                backgroundColor: activeTab === tab ? theme.primary : theme.card,
+                                backgroundColor: activeTab === tab ? theme.tint : theme.slateCard,
                             }}
                         >
                             <Text style={{ color: activeTab === tab ? '#fff' : theme.text, fontWeight: '600', textAlign: 'center' }}>
@@ -138,9 +136,8 @@ export default function ServicesManagementScreen() {
                     ))}
                 </View>
 
-                {/* Services List */}
                 {filteredServices.map(service => (
-                    <View key={service.id} style={{ backgroundColor: theme.card, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                    <View key={service.id} style={{ backgroundColor: theme.slateCard, borderRadius: 12, padding: 16, marginBottom: 12 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                             <ThemedText style={{ fontSize: 18, fontWeight: '600' }}>{service.title}</ThemedText>
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: service.online ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)' }}>
@@ -150,7 +147,7 @@ export default function ServicesManagementScreen() {
                             </View>
                         </View>
 
-                        <Text style={{ color: theme.textSecondary, marginBottom: 12 }}>{service.description}</Text>
+                        <Text style={{ color: theme.icon, marginBottom: 12 }}>{service.description}</Text>
 
                         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                             <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(99,102,241,0.1)' }}>
@@ -162,7 +159,7 @@ export default function ServicesManagementScreen() {
                         </View>
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <ThemedText style={{ fontSize: 20, fontWeight: '700', color: theme.primary }}>{service.price}</ThemedText>
+                            <ThemedText style={{ fontSize: 20, fontWeight: '700', color: theme.tint }}>{service.price}</ThemedText>
 
                             <Pressable
                                 onPress={() => handleDeleteService(service.id)}
@@ -176,7 +173,7 @@ export default function ServicesManagementScreen() {
 
                 {filteredServices.length === 0 && (
                     <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                        <Text style={{ color: theme.textSecondary }}>Aucun service trouvé</Text>
+                        <Text style={{ color: theme.icon }}>Aucun service trouvé</Text>
                     </View>
                 )}
             </ScrollView>

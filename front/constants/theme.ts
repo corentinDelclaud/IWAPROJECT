@@ -10,19 +10,6 @@ const tintColorDark = '#fff';
 
 export const Colors = {
     light: {
-        // text: '#11181C',
-        // background: '#fff',
-        // tint: tintColorLight,
-        // icon: '#687076',
-        // tabIconDefault: '#687076',
-        // tabIconSelected: tintColorLight,
-        // slateBg: '#0f172a',
-        // slateCard: 'rgba(30,41,59,0.5)',
-        // slateBorder: 'rgba(51,65,85,0.5)',
-        // purple: '#7c3aed',
-        // blue: '#2563eb',
-        // yellow: '#f59e0b',
-        // green: '#22c55e',
         text: '#ECEDEE',
         background: '#151718',
         tint: tintColorDark,
@@ -36,10 +23,13 @@ export const Colors = {
         blue: '#3b82f6',
         yellow: '#fbbf24',
         green: '#22c55e',
+        card: '#ffffff',
+        primary: '#2f95dc',
+        textSecondary: '#6b7280',
     },
     dark: {
         text: '#ECEDEE',
-        textSecondary: '#9BA1A6',
+        textSecondary: '#9ca3af',
         background: '#151718',
         tint: tintColorDark,
         icon: '#9BA1A6',
@@ -54,6 +44,8 @@ export const Colors = {
         green: '#22c55e',
             gradientStart: '#0b1220',
             gradientEnd: '#151718',
+        card: '#1e293b',
+        primary: '#60a5fa',
     },
 };
 
