@@ -26,11 +26,13 @@ public class SecurityConfig {
                 .pathMatchers("/realms/**").permitAll()
                 .pathMatchers("/resources/**").permitAll()
                 .pathMatchers("/api/webhooks/**").permitAll()
-                
+                .pathMatchers("/api/**").permitAll()
+                .pathMatchers("/auth/**").permitAll()
+
                 // Tous les autres endpoints sont gérés par le JWT filter custom
                 .anyExchange().permitAll()
             );
-        
+
         return http.build();
     }
 }
