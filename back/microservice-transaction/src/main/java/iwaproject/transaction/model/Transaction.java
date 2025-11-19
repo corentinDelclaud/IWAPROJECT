@@ -29,18 +29,19 @@ public class Transaction {
     private Integer idService;
     
     @Column(name = "id_client", nullable = false)
-    private Integer idClient;
+    private String idClient;
     
     @Column(name = "id_provider", nullable = false)
-    private Integer idProvider;
+    private String idProvider;
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
     protected Transaction() {}
     
-    public Transaction(TransitionState state, Integer idService, Integer idClient, Integer idProvider, Integer idConversation) {
-        this.transactionState = state;
+    public Transaction(TransitionState transactionState, Integer idService, 
+                      String idClient, String idProvider, Integer idConversation) {
+        this.transactionState = transactionState;
         this.idService = idService;
         this.idClient = idClient;
         this.idProvider = idProvider;
@@ -54,8 +55,8 @@ public class Transaction {
     public LocalDateTime getFinishDate() { return finishDate; }
     public Integer getIdConversation() { return idConversation; }
     public Integer getIdService() { return idService; }
-    public Integer getIdClient() { return idClient; }
-    public Integer getIdProvider() { return idProvider; }
+    public String getIdClient() { return idClient; }
+    public String getIdProvider() { return idProvider; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     
     public void setTransactionState(TransitionState state) { this.transactionState = state; }

@@ -1,14 +1,14 @@
 package iwaproject.transaction.service;
 
+import iwaproject.transaction.client.CatalogClient;
 import iwaproject.transaction.dto.CreateTransactionRequest;
 import iwaproject.transaction.dto.UpdateStateRequest;
 import iwaproject.transaction.enums.TransitionState;
 import iwaproject.transaction.model.Conversation;
-import iwaproject.transaction.model.Product;
 import iwaproject.transaction.model.Transaction;
 import iwaproject.transaction.repository.ConversationRepository;
-import iwaproject.transaction.repository.ProductRepository;
 import iwaproject.transaction.repository.TransactionRepository;
+import iwaproject.transaction.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,26 +23,42 @@ public class TransactionService {
     
     private final TransactionRepository transactionRepository;
     private final ConversationRepository conversationRepository;
-    private final ProductRepository productRepository;
+    private final CatalogClient catalogClient;
+    private final JwtUtil jwtUtil;
     
     public TransactionService(TransactionRepository transactionRepository, 
                             ConversationRepository conversationRepository,
-                            ProductRepository productRepository) {
+                            CatalogClient catalogClient,
+                            JwtUtil jwtUtil) {
         this.transactionRepository = transactionRepository;
         this.conversationRepository = conversationRepository;
-        this.productRepository = productRepository;
+        this.catalogClient = catalogClient;
+        this.jwtUtil = jwtUtil;
     }
     
     @Transactional
     public Transaction createTransaction(CreateTransactionRequest request) {
-        log.info("Creating transaction for userId={}, serviceId={}", request.userId(), request.serviceId());
+        String userId = jwtUtil.getUserIdFromToken();
+        log.info("Creating transaction for userId={}, serviceId={}", userId, request.serviceId());
         
-        Product product = productRepository.findById(request.serviceId())
-            .orElseThrow(() -> new IllegalArgumentException("Service not found"));
+        // #debuglog Récupération du produit depuis le catalog
+        CatalogClient.ProductDTO product = catalogClient.getProduct(request.serviceId());
+        
+        if (product == null) {
+            log.error("#debuglog Product not found: serviceId={}", request.serviceId());
+            throw new IllegalArgumentException("Service not found");
+        }
+        
+        if (!product.isAvailable()) {
+            log.error("#debuglog Product not available: serviceId={}", request.serviceId());
+            throw new IllegalStateException("Service is not available");
+        }
+        
+        log.info("#debuglog Product validated: id={}, provider={}", product.idService(), product.idProvider());
         
         // Vérifier qu'aucune transaction active n'existe déjà
         transactionRepository.findByIdClientAndIdServiceAndTransactionStateNotIn(
-            request.userId(),
+            userId,
             request.serviceId(),
             java.util.List.of(TransitionState.FINISHED_AND_PAYED, TransitionState.CANCELED)
         ).ifPresent(existingTransaction -> {
@@ -55,14 +71,14 @@ public class TransactionService {
             ? TransitionState.REQUESTED 
             : TransitionState.EXCHANGING;
         
-        Conversation conversation = new Conversation(request.userId(), product.getIdProvider());
+        Conversation conversation = new Conversation(userId, product.idProvider());
         conversation = conversationRepository.save(conversation);
         
         Transaction transaction = new Transaction(
             initialState,
             request.serviceId(),
-            request.userId(),
-            product.getIdProvider(),
+            userId,
+            product.idProvider(),
             conversation.getId()
         );
         
@@ -72,19 +88,29 @@ public class TransactionService {
     }
     
     public Transaction getTransaction(Integer id) {
-        log.debug("Fetching transaction with id={}", id);
-        return transactionRepository.findById(id)
+        String userId = jwtUtil.getUserIdFromToken();
+        log.debug("#debuglog Fetching transaction with id={} for user={}", id, userId);
+        
+        Transaction transaction = transactionRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
+        
+        // Vérifier que l'utilisateur a le droit d'accéder à cette transaction
+        if (!transaction.getIdClient().equals(userId) && !transaction.getIdProvider().equals(userId)) {
+            log.error("#debuglog User {} not authorized to access transaction {}", userId, id);
+            throw new IllegalStateException("Not authorized to access this transaction");
+        }
+        
+        return transaction;
     }
     
     @Transactional
     public Transaction updateState(Integer transactionId, UpdateStateRequest request) {
-        log.info("Updating transaction {} state to {} by user {}", transactionId, request.newState(), request.userId());
+        String userId = jwtUtil.getUserIdFromToken();
+        log.info("#debuglog Updating transaction {} state to {} by user {}", transactionId, request.newState(), userId);
         
         Transaction transaction = getTransaction(transactionId);
         TransitionState currentState = transaction.getTransactionState();
         TransitionState newState = request.newState();
-        Integer userId = request.userId();
         
         validateStateTransition(transaction, currentState, newState, userId);
         
@@ -103,7 +129,7 @@ public class TransactionService {
     }
     
     private void validateStateTransition(Transaction transaction, TransitionState current, 
-                                        TransitionState target, Integer userId) {
+                                        TransitionState target, String userId) {
         log.debug("Validating state transition: {} -> {} for user {}", current, target, userId);
         
         if (current == TransitionState.CANCELED || current == TransitionState.FINISHED_AND_PAYED) {
@@ -126,8 +152,6 @@ public class TransactionService {
             case PREPAID -> {
                 if (current != TransitionState.REQUEST_ACCEPTED) 
                     throw new IllegalStateException("Can only prepay from REQUEST_ACCEPTED");
-                if (!userId.equals(999)) 
-                    throw new IllegalStateException("Only test user 999 can trigger prepayment");
             }
             case CLIENT_CONFIRMED -> {
                 if (current != TransitionState.PREPAID && current != TransitionState.PROVIDER_CONFIRMED)
@@ -157,7 +181,7 @@ public class TransactionService {
         }
     }
     
-    private void handleConfirmation(Transaction transaction, Integer userId) {
+    private void handleConfirmation(Transaction transaction, String userId) {
         boolean isClient = userId.equals(transaction.getIdClient());
         boolean isProvider = userId.equals(transaction.getIdProvider());
         
@@ -167,7 +191,6 @@ public class TransactionService {
         
         TransitionState current = transaction.getTransactionState();
         
-        // Vérifier qu'on vient bien de PREPAID ou d'une confirmation partielle
         if (current != TransitionState.PREPAID && 
             current != TransitionState.CLIENT_CONFIRMED && 
             current != TransitionState.PROVIDER_CONFIRMED) {
@@ -179,7 +202,6 @@ public class TransactionService {
         } else if (current == TransitionState.PROVIDER_CONFIRMED && isClient) {
             transaction.setTransactionState(TransitionState.DOUBLE_CONFIRMED);
         }
-        // Si on est en PREPAID, le state reste CLIENT_CONFIRMED ou PROVIDER_CONFIRMED (déjà set avant l'appel)
     }
     
     private void handleDoubleConfirmation(Transaction transaction) {

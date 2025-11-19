@@ -262,6 +262,9 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SERVICES_GATEWAY_URL: http://api-gateway:8080
+      KEYCLOAK_ISSUER_URI: http://keycloak:8085/realms/IWA_NextLevel
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
     ports:
       - "8084:8084"
     networks:
@@ -269,6 +272,8 @@ services:
     depends_on:
       postgres-transaction:
         condition: service_healthy
+      api-gateway:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8084/actuator/health || exit 1"]
