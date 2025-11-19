@@ -1,157 +1,219 @@
-# 🎯 INSTANT USER SYNC - Quick Setup
+# Quick Start Guide - Keycloak User Synchronization
 
-Users will be **automatically added to PostgreSQL** when they register in Keycloak!
+## Overview
+This guide will help you set up automatic user synchronization between Keycloak and the user-microservice.
 
-## 🚀 Setup (5 Minutes)
+## Prerequisites
+- Docker and Docker Compose running
+- All services started with `docker-compose up -d`
+- Maven installed (for building the extension)
 
-### Step 1: Build the Keycloak Extension
+## Step-by-Step Setup
+
+### Step 1: Build and Deploy the Extension
 
 ```bash
-cd ./IWAPROJECT/back/keycloak-webhook-extension
-mvn clean package
+cd /home/etienne/Documents/IWAPROJECT/back/keycloak-webhook-extension
+./build-and-deploy.sh
 ```
 
-This creates the extension JAR file.
+Expected output:
+```
+Building Keycloak Webhook Extension
+Build successful! JAR created at: target/keycloak-webhook-extension.jar
+Copying JAR to Keycloak container...
+Extension deployed successfully!
+```
 
 ### Step 2: Restart Keycloak
 
 ```bash
-cd ./IWAPROJECT/back/user-microservice
-
-# Stop Keycloak
-docker compose -f docker-compose.keycloak.yml down
-
-# Start with the extension
-docker compose -f docker-compose.keycloak.yml up -d
-
-# Wait for it to start (30 seconds)
-sleep 30
+docker restart iwa-keycloak
 ```
 
-### Step 3: Verify Extension Loaded
+Wait 30-60 seconds for Keycloak to fully restart. Monitor the logs:
 
 ```bash
-docker logs iwa-keycloak | grep -i "webhook"
-```
-
-You should see:
-```
-🚀 Webhook Event Listener initialized
-   Webhook URL: http://host.docker.internal:8081/api/webhooks/keycloak/user-registered
-```
-
-### Step 4: Enable in Keycloak Admin Console
-
-1. Go to **http://localhost:8080/admin**
-2. Login: `admin` / `admin`
-3. Select realm: **IWA_NextLevel** (top-left dropdown)
-4. Go to: **Realm Settings** → **Events** tab
-5. Scroll down to **Event Listeners** section
-6. Click in the field and select **webhook-event-listener**
-7. Click **Save**
-
-### Step 5: Test It!
-
-**Make sure your microservice is running:**
-```bash
-cd ./IWAPROJECT/back/user-microservice
-mvn spring-boot:run  # If not already running
-```
-
-**Create a test user:**
-1. Go to **http://localhost:8080/admin**
-2. **Users** → **Create new user**
-3. Username: `instanttest`
-4. Email: `instant@test.com`
-5. First name: `Instant`
-6. Last name: `Test`
-7. Click **Create**
-8. Go to **Credentials** tab → **Set password** → `test123` (Temporary: OFF)
-
-**Check the database:**
-```bash
-docker exec iwa-user-postgres psql -U postgres -d iwa_users \
-  -c "SELECT username, email, created_at FROM users WHERE username='instanttest';"
-```
-
-🎉 **The user should appear immediately!**
-
-## ✨ How It Works
-
-```
-User registers in Keycloak
-        ↓
-Keycloak Extension triggers
-        ↓
-Calls webhook endpoint
-        ↓
-User added to PostgreSQL
-        ↓
-DONE! (All automatic)
-```
-
-## 🔍 Troubleshooting
-
-### Extension not loaded?
-
-```bash
-# Check if JAR exists
-docker exec iwa-keycloak ls -la /opt/keycloak/providers/
-
-# Should show: keycloak-webhook-extension-1.0.0.jar
-```
-
-### Webhook not being called?
-
-1. **Check event listener is enabled** in Admin Console (Step 4)
-2. **Check Keycloak logs:**
-   ```bash
-   docker logs -f iwa-keycloak
-   ```
-3. **Test webhook directly:**
-   ```bash
-   curl -X POST http://localhost:8081/api/webhooks/keycloak/user-registered \
-     -H "Content-Type: application/json" \
-     -d '{"userId":"test123","username":"testwebhook","email":"test@test.com","firstName":"Test","lastName":"User"}'
-   ```
-
-### User not appearing in database?
-
-1. **Check microservice logs** - should see "Received user registration webhook"
-2. **Check microservice is running** on port 8081
-3. **Check PostgreSQL is running**
-
-## 📊 Verify Everything Works
-
-```bash
-# Watch Keycloak logs
 docker logs -f iwa-keycloak
-
-# In another terminal, create a user in Keycloak
-# You should see in the logs:
-# "User registration event detected: userId=..."
-# "Sending webhook for user: ..."
-# "✅ Successfully sent webhook for user: ... (HTTP 201)"
 ```
 
-## 🎓 What You Get
+Look for this line (press Ctrl+C when you see it):
+```
+WebhookEventListenerProviderFactory initialized with webhookUrl: http://user-microservice:8081
+```
 
-✅ **Instant sync** - Users appear in DB immediately when they register  
-✅ **Zero manual work** - No more manual database insertion  
-✅ **Production ready** - Proper error handling and logging  
-✅ **Works everywhere** - Admin-created users OR self-registration  
+### Step 3: Enable the Event Listener in Keycloak
 
-## 🔄 Auto-Setup Script (Alternative)
+1. Open Keycloak Admin Console: http://localhost:8085/admin
+2. Login:
+   - Username: `admin`
+   - Password: `admin`
+3. Select the realm: **IWA_NextLevel** (dropdown at top left)
+4. Click **Realm Settings** in the left menu
+5. Click the **Events** tab
+6. Scroll down to **Event Listeners**
+7. Click in the Event Listeners field
+8. Select or type: `user-webhook-sync`
+9. Click **Save** at the bottom
 
-Or use the automated setup script:
+### Step 4: Verify Setup
+
+Check that both databases are empty:
 
 ```bash
-cd ./IWAPROJECT/back/keycloak-webhook-extension
-./setup.sh
+# Check user-microservice database
+docker exec iwa-postgres-users psql -U postgres -d iwa_users -c "SELECT id, username, email FROM users;"
+
+# Check Keycloak database
+docker exec iwa-postgres-keycloak psql -U keycloak -d keycloak -c "SELECT id, username, email FROM user_entity ORDER BY username;"
 ```
 
-This will guide you through all the steps automatically.
+### Step 5: Test the Synchronization
 
----
+#### Option A: Create a User via Keycloak Admin UI
 
-**That's it!** From now on, every user registered in Keycloak will automatically appear in PostgreSQL! 🚀
+1. In Keycloak Admin Console: http://localhost:8085/admin
+2. Click **Users** in the left menu
+3. Click **Create new user**
+4. Fill in the form:
+   - Username: `synctest`
+   - Email: `synctest@example.com`
+   - First name: `Sync`
+   - Last name: `Test`
+5. Click **Create**
+6. Go to the **Credentials** tab
+7. Click **Set password**
+8. Enter a password (e.g., `password123`)
+9. Turn OFF "Temporary"
+10. Click **Save**
+
+#### Option B: Create a User via API
+
+```bash
+# First, get an admin token
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8085/realms/master/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin" \
+  -d "password=admin" \
+  -d "grant_type=password" \
+  -d "client_id=admin-cli" | jq -r '.access_token')
+
+# Create a user
+curl -X POST http://localhost:8085/admin/realms/IWA_NextLevel/users \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "apitest",
+    "email": "apitest@example.com",
+    "firstName": "API",
+    "lastName": "Test",
+    "enabled": true,
+    "credentials": [{
+      "type": "password",
+      "value": "password123",
+      "temporary": false
+    }]
+  }'
+```
+
+### Step 6: Verify Synchronization
+
+```bash
+# Check user-microservice database (should now have users!)
+docker exec iwa-postgres-users psql -U postgres -d iwa_users -c "SELECT id, username, email, first_name, last_name FROM users ORDER BY username;"
+```
+
+Expected result:
+```
+                  id                  | username | email               | first_name | last_name
+--------------------------------------+----------+---------------------+------------+-----------
+ <keycloak-uuid>                      | synctest | synctest@example.com| Sync       | Test
+```
+
+### Step 7: Test Your JWT Token
+
+Now create a token and test the profile endpoint:
+
+```bash
+# Get a token for your new user
+TOKEN=$(curl -s -X POST http://localhost:8085/realms/IWA_NextLevel/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=synctest" \
+  -d "password=password123" \
+  -d "grant_type=password" \
+  -d "client_id=iwa-client" | jq -r '.access_token')
+
+# Test the profile endpoint
+curl -X GET http://localhost:8081/api/users/profile \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+```
+
+## Troubleshooting
+
+### Extension Not Loading
+
+Check Keycloak logs:
+```bash
+docker logs iwa-keycloak 2>&1 | grep -i webhook
+```
+
+If you don't see "WebhookEventListenerProviderFactory initialized", rebuild and redeploy.
+
+### Webhook Not Being Called
+
+1. Check that the event listener is enabled in Keycloak (Step 3)
+2. Check user-microservice logs:
+   ```bash
+   docker logs iwa-user-microservice | grep -i webhook
+   ```
+
+### User Not Syncing
+
+1. Check if the webhook endpoint is accessible:
+   ```bash
+   curl http://localhost:8081/api/webhooks/health
+   ```
+   Should return: "Webhook endpoint is healthy"
+
+2. Test the webhook manually:
+   ```bash
+   curl -X POST http://localhost:8081/api/webhooks/users \
+     -H "Content-Type: application/json" \
+     -d '{
+       "id": "test-123",
+       "username": "manualtest",
+       "email": "manual@test.com",
+       "firstName": "Manual",
+       "lastName": "Test"
+     }'
+   ```
+
+3. Check the database:
+   ```bash
+   docker exec iwa-postgres-users psql -U postgres -d iwa_users -c "SELECT * FROM users WHERE username = 'manualtest';"
+   ```
+
+## Sync Existing Users
+
+If you have existing users in Keycloak that need to be synced:
+
+1. Go to each user in Keycloak Admin Console
+2. Make a small change (e.g., add/update a field)
+3. Click Save
+4. This will trigger an UPDATE event and sync the user
+
+## Next Steps
+
+- Set up a password for existing users (admin, testuser)
+- Test the authentication flow
+- Create additional users as needed
+- Verify all microservice endpoints work with JWT tokens
+
+## Security Considerations
+
+In production, you should:
+- Add webhook authentication (shared secret)
+- Restrict webhook endpoints to internal network only
+- Enable HTTPS for all communication
+- Use proper Keycloak client credentials

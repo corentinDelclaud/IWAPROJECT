@@ -113,6 +113,8 @@ services:
       # Configuration HTTP
       KC_HTTP_ENABLED: "true"
       KC_HTTP_PORT: 8085
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8085
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HEALTH_ENABLED: "true"
@@ -177,7 +179,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      KEYCLOAK_ISSUER_URI: http://keycloak:8085/realms/IWA_NextLevel
+      KEYCLOAK_ISSUER_URI: http://localhost:8085/realms/IWA_NextLevel
       KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
     ports:
       - "8081:8081"
