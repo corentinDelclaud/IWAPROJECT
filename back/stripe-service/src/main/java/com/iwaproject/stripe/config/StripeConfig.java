@@ -28,6 +28,9 @@ public class StripeConfig {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Value("${app.onboarding-return-path}")
+    private String onboardingReturnPath;
+
     @PostConstruct
     public void init() {
         Stripe.apiKey = secretKey;

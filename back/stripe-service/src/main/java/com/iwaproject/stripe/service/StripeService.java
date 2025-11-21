@@ -63,12 +63,21 @@ public class StripeService {
     public CreateAccountLinkResponse createAccountLink(CreateAccountLinkRequest request) throws StripeException {
         log.info("Creating account link for account: {}", request.getAccountId());
         
-        AccountLinkCreateParams params = AccountLinkCreateParams.builder()
-                .setAccount(request.getAccountId())
-                .setRefreshUrl(stripeConfig.getDomain() + "?refresh=true")
-                .setReturnUrl(stripeConfig.getDomain() + "?accountId=" + request.getAccountId())
-                .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
-                .build();
+                // Use frontend URL and onboarding return path for both refresh and return destinations.
+                String base = stripeConfig.getFrontendUrl();
+                String returnPath = stripeConfig.getOnboardingReturnPath();
+                if (!returnPath.startsWith("/")) {
+                        returnPath = "/" + returnPath; // normalize
+                }
+                String refreshUrl = base + returnPath + (returnPath.endsWith("/") ? "" : "/") + "?refresh=true";
+                String returnUrl = base + returnPath + (returnPath.endsWith("/") ? "" : "/") + "?accountId=" + request.getAccountId();
+
+                AccountLinkCreateParams params = AccountLinkCreateParams.builder()
+                                .setAccount(request.getAccountId())
+                                .setRefreshUrl(refreshUrl)
+                                .setReturnUrl(returnUrl)
+                                .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
+                                .build();
 
         AccountLink accountLink = AccountLink.create(params);
         log.info("Created account link: {}", accountLink.getUrl());
