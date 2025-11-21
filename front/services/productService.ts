@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
-        return 'http://162.38.39.123:8080';
+        return `http://${process.env.EXPO_PUBLIC_API_HOST}:8080`;
     }
     // Pour iOS simulator ou web
     return 'http://localhost:8080';
