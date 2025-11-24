@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_CONFIG } from '@/config/keycloak';
+import { API_CONFIG, KEYCLOAK_CONFIG } from '@/config/keycloak';
 
 interface UserProfile {
   id: string;
@@ -11,8 +11,17 @@ interface UserProfile {
   updatedAt: string;
 }
 
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  id_token: string;
+  expires_in: number;
+}
+
 class ApiService {
   private baseUrl: string;
+  private isRefreshing = false;
+  private refreshSubscribers: Array<(token: string) => void> = [];
 
   constructor() {
     this.baseUrl = API_CONFIG.baseUrl;
@@ -21,28 +30,104 @@ class ApiService {
   private async getAccessToken(): Promise<string | null> {
     try {
       // Keep in sync with STORAGE_KEYS.ACCESS_TOKEN in AuthContext
-      return await AsyncStorage.getItem('@auth/access_token');
+      const token = await AsyncStorage.getItem('@auth/access_token');
+      if (token) {
+        console.log('[API] Access token retrieved from storage');
+      } else {
+        console.warn('[API] No access token found in storage');
+      }
+      return token;
     } catch (error) {
       console.error('Error getting access token:', error);
       return null;
     }
   }
 
+  private async getRefreshToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem('@auth/refresh_token');
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  }
+
+  private parseJwt(token: string): any {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Failed to parse JWT:', error);
+      return null;
+    }
+  }
+
+  private async refreshAccessToken(): Promise<string> {
+    const refreshToken = await this.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    console.log('[API] Refreshing access token...');
+
+    const tokenEndpoint = `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`;
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: KEYCLOAK_CONFIG.clientId,
+        refresh_token: refreshToken,
+      }).toString(),
+    });
+
+    if (!response.ok) {
+      console.error('[API] Token refresh failed');
+      throw new Error('Failed to refresh token');
+    }
+
+    const data: TokenResponse = await response.json();
+    const userInfo = this.parseJwt(data.access_token);
+
+    // Store new tokens
+    await Promise.all([
+      AsyncStorage.setItem('@auth/access_token', data.access_token),
+      AsyncStorage.setItem('@auth/refresh_token', data.refresh_token),
+      AsyncStorage.setItem('@auth/user_info', JSON.stringify(userInfo)),
+    ]);
+
+    console.log('[API] Access token refreshed successfully');
+    return data.access_token;
+  }
+
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retry = true
   ): Promise<T> {
     const accessToken = await this.getAccessToken();
 
-      const headers: Record<string, string> = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;
+      console.log('[API] Making authenticated request to:', endpoint);
+      console.log('[API] Token present:', accessToken.substring(0, 20) + '...');
+    } else {
+      console.warn('[API] No access token available for:', endpoint);
     }
 
     const url = `${this.baseUrl}${endpoint}`;
+    console.log('[API] Full URL:', url);
     
     try {
       const response = await fetch(url, {
@@ -51,9 +136,17 @@ class ApiService {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid - should trigger re-authentication
-          throw new Error('UNAUTHORIZED');
+        if (response.status === 401 && retry) {
+          // Token expired - try to refresh
+          console.log('[API] Got 401, attempting to refresh token...');
+          try {
+            await this.refreshAccessToken();
+            // Retry the request with the new token
+            return this.makeRequest<T>(endpoint, options, false);
+          } catch (refreshError) {
+            console.error('[API] Token refresh failed:', refreshError);
+            throw new Error('UNAUTHORIZED');
+          }
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

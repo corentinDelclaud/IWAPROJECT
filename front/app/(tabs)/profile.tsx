@@ -14,21 +14,27 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const { t } = useTranslation('profile');
-    const { logout, userInfo: authUser } = useAuth();
+  const { logout, userInfo: authUser, isAuthenticated, accessToken } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('profile');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[Profile] Component mounted');
+    console.log('[Profile] Auth user:', authUser);
+    console.log('[Profile] Is authenticated:', isAuthenticated);
+    console.log('[Profile] Has access token:', !!accessToken);
     loadUserProfile();
   }, []);
 
   const loadUserProfile = async () => {
     try {
+      console.log('[Profile] Loading user profile...');
       setLoading(true);
       setError(null);
       const profile = await apiService.getUserProfile();
+      console.log('[Profile] Profile loaded successfully:', profile);
       setUserProfile(profile);
     } catch (err) {
       console.error('Failed to load user profile:', err);

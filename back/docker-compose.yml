@@ -182,7 +182,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      KEYCLOAK_ISSUER_URI: http://localhost:8085/realms/IWA_NextLevel
+      KEYCLOAK_ISSUER_URI: http://${API_HOST:-localhost}:8085/realms/IWA_NextLevel
       KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
     ports:
       - "8081:8081"
