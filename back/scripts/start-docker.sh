@@ -17,7 +17,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Se déplacer dans le répertoire parent (où se trouve docker-compose.yml)
+# Se déplacer dans le répertoire parent (où se trouve docker compose.yml)
 cd "$(dirname "$0")/.."
 
 # Vérifier que Docker est installé
@@ -27,17 +27,17 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Vérifier que Docker Compose est installé
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     echo "❌ Docker Compose n'est pas installé. Veuillez installer Docker Compose d'abord."
     exit 1
 fi
 
 echo -e "${BLUE}📦 Construction des images Docker...${NC}"
-docker-compose build
+docker compose build
 
 echo ""
 echo -e "${BLUE}🐳 Démarrage des conteneurs...${NC}"
-docker-compose up -d
+docker compose up -d
 
 echo ""
 echo -e "${YELLOW}⏳ Attente du démarrage des services (cela peut prendre 1-2 minutes)...${NC}"
@@ -77,10 +77,10 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo -e "${YELLOW}📊 Commandes utiles :${NC}"
-echo "  - Voir les logs:           docker-compose logs -f"
-echo "  - Voir les logs d'un service: docker-compose logs -f <service>"
-echo "  - Arrêter les services:    docker-compose down"
-echo "  - Redémarrer:              docker-compose restart"
-echo "  - Statut des services:     docker-compose ps"
+echo "  - Voir les logs:           docker compose logs -f"
+echo "  - Voir les logs d'un service: docker compose logs -f <service>"
+echo "  - Arrêter les services:    docker compose down"
+echo "  - Redémarrer:              docker compose restart"
+echo "  - Statut des services:     docker compose ps"
 echo ""
 echo -e "${GREEN}🎉 Démarrage terminé !${NC}"

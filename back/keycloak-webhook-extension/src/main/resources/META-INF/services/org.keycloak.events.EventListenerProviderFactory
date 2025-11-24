@@ -1,1 +1,1 @@
-com.iwaproject.keycloak.WebhookEventListenerProviderFactory
+iwaproject.keycloak.webhook.WebhookEventListenerProviderFactory

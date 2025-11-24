@@ -1,2 +1,2 @@
-./IWAPROJECT/back/keycloak-webhook-extension/src/main/java/com/iwaproject/keycloak/WebhookEventListenerProviderFactory.java
-./IWAPROJECT/back/keycloak-webhook-extension/src/main/java/com/iwaproject/keycloak/WebhookEventListenerProvider.java
+/home/etienne/Documents/IWAPROJECT/back/keycloak-webhook-extension/src/main/java/iwaproject/keycloak/webhook/WebhookEventListenerProvider.java
+/home/etienne/Documents/IWAPROJECT/back/keycloak-webhook-extension/src/main/java/iwaproject/keycloak/webhook/WebhookEventListenerProviderFactory.java

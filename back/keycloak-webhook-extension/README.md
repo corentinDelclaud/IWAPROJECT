@@ -1,93 +1,129 @@
-# Keycloak Webhook Extension
+# Keycloak Webhook Extension for User Synchronization
 
-This extension automatically calls your microservice webhook when users register in Keycloak, syncing them to PostgreSQL **immediately** without waiting for first API access.
+This extension synchronizes users between Keycloak and the user-microservice database automatically.
 
-## 📋 What It Does
+## Features
 
-- Listens for user registration events in Keycloak
-- Automatically calls `POST /api/webhooks/keycloak/user-registered` 
-- User is added to PostgreSQL database immediately
-- No need to wait for first API access
+- **Automatic User Sync**: When a user is created in Keycloak, it's automatically created in the user-microservice database
+- **Real-time Updates**: User updates in Keycloak are immediately reflected in the user-microservice
+- **Soft Delete**: User deletions in Keycloak trigger a soft delete (timestamp) in the user-microservice
+- **Keycloak ID Tracking**: The user-microservice stores the Keycloak user ID as the primary key
 
-## 🔨 Build the Extension
+## Architecture
 
-```bash
-cd ./IWAPROJECT/back/keycloak-webhook-extension
-mvn clean package
+```
+Keycloak Admin Event
+        ↓
+WebhookEventListenerProvider (SPI)
+        ↓
+HTTP Request to user-microservice
+        ↓
+UserWebhookController
+        ↓
+UserWebhookService
+        ↓
+User Database
 ```
 
-This creates: `target/keycloak-webhook-extension-1.0.0.jar`
+## Installation
 
-## 📦 Deploy to Keycloak
-
-### Option 1: Update docker-compose.keycloak.yml (Recommended)
-
-Edit your `user-microservice/docker-compose.keycloak.yml`:
-
-```yaml
-services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0.7
-    container_name: iwa-keycloak
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HTTP_PORT: 8080
-      KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
-      KC_HTTP_ENABLED: true
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./keycloak-data:/opt/keycloak/data
-      - ../../keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
-      # Mount the webhook extension
-      - ../keycloak-webhook-extension/target/keycloak-webhook-extension-1.0.0.jar:/opt/keycloak/providers/keycloak-webhook-extension-1.0.0.jar
-    command:
-      - start-dev
-      - --import-realm
-    networks:
-      - iwa-network
-
-networks:
-  iwa-network:
-    driver: bridge
-```
-
-### Option 2: Copy JAR manually
+### 1. Build the Extension
 
 ```bash
-docker cp target/keycloak-webhook-extension-1.0.0.jar iwa-keycloak:/opt/keycloak/providers/
+cd /home/etienne/Documents/IWAPROJECT/back/keycloak-webhook-extension
+chmod +x build-and-deploy.sh
+./build-and-deploy.sh
+```
+
+### 2. Restart Keycloak
+
+```bash
 docker restart iwa-keycloak
 ```
 
-## ⚙️ Configure in Keycloak
+Wait for Keycloak to fully start (check logs):
+```bash
+docker logs -f iwa-keycloak
+```
 
-1. Go to **http://localhost:8080/admin**
-2. Login: `admin` / `admin`
-3. Select realm: **IWA_NextLevel**
+### 3. Enable the Extension in Keycloak
+
+1. Open Keycloak Admin Console: http://localhost:8085/admin
+2. Login with admin/admin
+3. Select the realm: **IWA_NextLevel**
 4. Go to: **Realm Settings** → **Events** tab
-5. Scroll to **Event Listeners**
-6. Add `webhook-event-listener` to the list
-7. Click **Save**
+5. In the **Event Listeners** section, click the field and add: `user-webhook-sync`
+6. Click **Save**
 
-## 🧪 Test It
+### 4. Test the Integration
 
-### 1. Make sure your microservice is running
-
-```bash
-cd ./IWAPROJECT/back/user-microservice
-mvn spring-boot:run
-```
-
-### 2. Make sure Keycloak is running with the extension
+Create a test user in Keycloak:
 
 ```bash
-cd ./IWAPROJECT/back/user-microservice
-docker compose -f docker-compose.keycloak.yml up -d
+# Access Keycloak Admin Console
+# http://localhost:8085/admin
+# Go to Users > Add User
 ```
 
-### 3. Check Keycloak logs to verify extension loaded
+Then verify the user was created in the user-microservice database:
+
+```bash
+docker exec iwa-postgres-users psql -U postgres -d iwa_users -c "SELECT id, username, email, first_name, last_name FROM users;"
+```
+
+## How It Works
+
+### Keycloak Side
+
+The extension implements the Keycloak `EventListenerProvider` SPI (Service Provider Interface):
+
+1. **WebhookEventListenerProviderFactory**: Registers the extension with Keycloak
+2. **WebhookEventListenerProvider**: Listens to admin events (CREATE, UPDATE, DELETE) for users
+3. Sends HTTP requests to the user-microservice webhook endpoints
+
+### User-Microservice Side
+
+The microservice receives webhook events:
+
+1. **UserWebhookController**: Exposes webhook endpoints
+2. **UserWebhookService**: Handles the user synchronization logic
+3. **User Entity**: Stores the Keycloak user ID as the primary key
+
+### Webhook Endpoints
+
+- `POST /api/webhooks/users` - Create user
+- `PUT /api/webhooks/users/{userId}` - Update user
+- `DELETE /api/webhooks/users/{userId}` - Soft delete user
+- `GET /api/webhooks/health` - Health check
+
+## Configuration
+
+The webhook URL is configured in the extension and defaults to:
+```
+http://user-microservice:8081
+```
+
+This uses Docker's internal network to communicate between containers.
+
+## User Entity Structure
+
+The `User` entity in the user-microservice now stores:
+
+```java
+@Id
+private String id; // Keycloak user ID (UUID)
+private String username;
+private String email;
+private String firstName;
+private String lastName;
+private LocalDateTime createdAt;
+private LocalDateTime updatedAt;
+private LocalDateTime deletedAt; // For soft delete
+```
+
+## Troubleshooting
+
+### Check Extension is Loaded
 
 ```bash
 docker logs iwa-keycloak | grep -i webhook
@@ -95,119 +131,59 @@ docker logs iwa-keycloak | grep -i webhook
 
 You should see:
 ```
-🚀 Webhook Event Listener initialized
-   Webhook URL: http://host.docker.internal:8081/api/webhooks/keycloak/user-registered
+WebhookEventListenerProviderFactory initialized with webhookUrl: http://user-microservice:8081
 ```
 
-### 4. Register a new user
+### Check Webhook Requests
 
-**Via Admin Console:**
-1. http://localhost:8080/admin
-2. Users → Create new user
-3. Username: `testwebhook`
-4. Email: `webhook@test.com`
-5. Save, then set password in Credentials tab
-
-**Or via Self-Registration:**
-1. http://localhost:8080/realms/IWA_NextLevel/account
-2. Click Register
-3. Fill form and submit
-
-### 5. Check the results
-
-**Check microservice logs:**
 ```bash
-# Should see: "Received user registration webhook for user: testwebhook"
+docker logs iwa-user-microservice | grep -i webhook
 ```
 
-**Check database:**
+### Test Webhook Manually
+
 ```bash
-docker exec iwa-user-postgres psql -U postgres -d iwa_users \
-  -c "SELECT username, email, created_at FROM users ORDER BY created_at DESC LIMIT 5;"
+curl -X POST http://localhost:8081/api/webhooks/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "test-id-123",
+    "username": "testuser",
+    "email": "test@example.com",
+    "firstName": "Test",
+    "lastName": "User"
+  }'
 ```
 
-You should see the new user immediately! 🎉
+### Re-sync Existing Users
 
-## 🐛 Troubleshooting
+If you have existing users in Keycloak that need to be synced, you can manually trigger the sync by updating each user in the Keycloak Admin Console (just change and save any field).
 
-### Extension not loaded
+## Development
 
-```bash
-# Check if JAR exists in container
-docker exec iwa-keycloak ls -la /opt/keycloak/providers/
-
-# Check Keycloak logs
-docker logs iwa-keycloak | grep -i "webhook"
-```
-
-### Webhook not being called
-
-1. **Check event listener is enabled:**
-   - Admin Console → Realm Settings → Events → Event Listeners
-   - Should have `webhook-event-listener` in the list
-
-2. **Check Keycloak logs:**
-   ```bash
-   docker logs -f iwa-keycloak
-   ```
-   Register a user and watch for webhook messages
-
-3. **Test webhook directly:**
-   ```bash
-   curl -X POST http://localhost:8081/api/webhooks/keycloak/user-registered \
-     -H "Content-Type: application/json" \
-     -d '{"userId":"test","username":"test","email":"test@test.com","firstName":"Test","lastName":"User"}'
-   ```
-
-### Connection refused
-
-- Make sure you're using `host.docker.internal` in the webhook URL (not `localhost`)
-- This allows Docker containers to reach services on the host machine
-
-### Rebuild after changes
+### Rebuild After Changes
 
 ```bash
-cd ./IWAPROJECT/back/keycloak-webhook-extension
-mvn clean package
+./build-and-deploy.sh
 docker restart iwa-keycloak
 ```
 
-## 🔒 Configuration
+### Maven Commands
 
-You can customize the webhook URL by setting environment variable in `docker-compose.keycloak.yml`:
+```bash
+# Clean build
+mvn clean package
 
-```yaml
-environment:
-  KC_SPI_EVENTS_LISTENER_WEBHOOK_EVENT_LISTENER_WEBHOOK_URL: "http://host.docker.internal:8081/api/webhooks/keycloak/user-registered"
+# Skip tests
+mvn clean package -DskipTests
+
+# View dependencies
+mvn dependency:tree
 ```
 
-## 📚 How It Works
+## Security Note
 
-1. User registers in Keycloak
-2. Keycloak fires `REGISTER` event
-3. Extension catches the event
-4. Extension calls webhook: `POST /api/webhooks/keycloak/user-registered`
-5. Microservice creates user in PostgreSQL
-6. Done! User is synced immediately
+The webhook endpoints (`/api/webhooks/**`) are configured as public in the SecurityConfig because they're called by Keycloak from within the Docker network. In production, consider adding:
 
-## ✅ Benefits
-
-- ✅ Users synced **immediately** on registration
-- ✅ Works even if user never uses the API
-- ✅ Clean separation of concerns
-- ✅ Reliable with proper error handling
-- ✅ Detailed logging for debugging
-
-## 🎓 Files
-
-```
-keycloak-webhook-extension/
-├── pom.xml                                         # Maven configuration
-├── README.md                                       # This file
-└── src/main/
-    ├── java/com/iwaproject/keycloak/
-    │   ├── WebhookEventListenerProvider.java      # Main event handler
-    │   └── WebhookEventListenerProviderFactory.java # Provider factory
-    └── resources/META-INF/services/
-        └── org.keycloak.events.EventListenerProviderFactory # SPI registration
-```
+- Shared secret validation
+- IP whitelist
+- Network isolation
