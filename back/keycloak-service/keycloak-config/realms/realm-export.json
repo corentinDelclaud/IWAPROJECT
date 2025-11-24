@@ -622,7 +622,10 @@
         "exp://ukurxiw-anonymous-19000.exp.direct/--/*",
         "exp://*.exp.direct/--/*",
         "http://localhost:19000/*",
-        "http://localhost:19006/*"
+        "http://localhost:19006/*",
+        "http://192.168.*.*:*/*",
+        "http://10.*.*.*:*/*",
+        "http://172.*.*.*:*/*"
       ],
       "webOrigins": [
         "*"
