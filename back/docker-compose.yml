@@ -124,6 +124,8 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak-service/keycloak-config/realms:/opt/keycloak/data/import:ro
+      # Mount providers directory to load custom Keycloak extensions (webhook listener)
+      - ./keycloak-service/providers:/opt/keycloak/providers:ro
     networks:
       - iwa-network
     depends_on:
