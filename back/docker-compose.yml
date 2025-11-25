@@ -113,7 +113,7 @@ services:
       # Configuration HTTP
       KC_HTTP_ENABLED: "true"
       KC_HTTP_PORT: 8085
-      KC_HOSTNAME: localhost
+      KC_HOSTNAME: 162.38.36.222 #localhost
       KC_HOSTNAME_PORT: 8085
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"

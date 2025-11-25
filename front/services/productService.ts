@@ -53,7 +53,7 @@ interface BackendProduct {
 function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
     return {
         id: backendProduct.idService,
-        title: backendProduct.name,
+        title: backendProduct.name || backendProduct.description?.split('-')[0]?.trim() || 'Produit sans titre',
         description: backendProduct.description,
         price: `${backendProduct.price}€`,  // Formatage du prix avec le symbole €
         game: backendProduct.game?.toLowerCase() || 'all',
