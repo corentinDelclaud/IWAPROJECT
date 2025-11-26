@@ -29,5 +29,10 @@
             "title": "Reviews",
             "subtitle": "Manage your ratings"
         }
+        ,
+        "profile": {
+            "title": "Profile",
+            "subtitle": "View your account information"
+        }
     }
 }

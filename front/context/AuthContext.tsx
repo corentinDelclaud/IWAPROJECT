@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { AppState } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,7 +23,8 @@ interface AuthContextType {
   userInfo: UserInfo | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  refreshAccessToken: () => Promise<void>;
+  // accept an optional refresh token to allow refreshing before state is settled
+  refreshAccessToken: (refreshTokenArg?: string) => Promise<void>;
 }
 
 interface UserInfo {
@@ -53,13 +55,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const discovery = {
     authorizationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/auth`,
     tokenEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`,
-    revocationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/logout`,
+    revocationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/revoke`,
+    endSessionEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/logout`,
   };
 
   // Load stored tokens on mount
   useEffect(() => {
     loadStoredAuth();
   }, []);
+
+  // Refresh tokens when the app becomes active again (e.g. user switches back after a long time)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active') {
+        try {
+          // If we have an access token, check expiry and refresh if it's close to expiring
+          if (accessToken) {
+            try {
+              const payload: any = parseJwt(accessToken);
+              const willExpireSoon = payload?.exp && payload.exp * 1000 <= Date.now() + 60_000;
+              if (willExpireSoon && refreshToken) {
+                console.log('[Auth] App resumed: access token will expire soon, refreshing...');
+                await refreshAccessToken(refreshToken);
+                setIsAuthenticated(true);
+              }
+            } catch (err) {
+              // parsing failed -> try refreshing if we have a refresh token
+              if (refreshToken) {
+                console.log('[Auth] App resumed: access token parse failed, attempting refresh');
+                await refreshAccessToken(refreshToken);
+                setIsAuthenticated(true);
+              }
+            }
+          } else if (refreshToken) {
+            // No access token but we have a refresh token: try to refresh to restore session
+            console.log('[Auth] App resumed: no access token but have refresh token, attempting refresh');
+            await refreshAccessToken(refreshToken);
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          console.warn('[Auth] Token refresh on resume failed, logging out', error);
+          await logout();
+        }
+      }
+    });
+
+    return () => subscription.remove();
+  }, [accessToken, refreshToken]);
 
   const loadStoredAuth = async () => {
     try {
@@ -69,11 +111,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         AsyncStorage.getItem(STORAGE_KEYS.USER_INFO),
       ]);
 
-      if (storedAccessToken && storedRefreshToken) {
-        setAccessToken(storedAccessToken);
+      // Ensure refresh token is stored in state for possible refresh attempts
+      if (storedRefreshToken) {
         setRefreshToken(storedRefreshToken);
-        setUserInfo(storedUserInfo ? JSON.parse(storedUserInfo) : null);
-        setIsAuthenticated(true);
+      }
+
+      // If we have an access token, validate its expiry first
+      if (storedAccessToken) {
+        try {
+          const payload: any = parseJwt(storedAccessToken);
+          const isValid = payload?.exp && payload.exp * 1000 > Date.now() + 60_000;
+
+          if (isValid) {
+            setAccessToken(storedAccessToken);
+            setUserInfo(storedUserInfo ? JSON.parse(storedUserInfo) : (payload || null));
+            setIsAuthenticated(true);
+            return;
+          }
+
+          // Access token expired or will expire soon -> try to refresh using refresh token
+          if (storedRefreshToken) {
+            try {
+              await refreshAccessToken(storedRefreshToken);
+              setIsAuthenticated(true);
+              return;
+            } catch (err) {
+              console.warn('[Auth] Refresh during load failed:', err);
+              await logout();
+              return;
+            }
+          }
+        } catch (err) {
+          // Parsing failed - try to recover using refresh token
+          if (storedRefreshToken) {
+            try {
+              await refreshAccessToken(storedRefreshToken);
+              setIsAuthenticated(true);
+              return;
+            } catch (e) {
+              console.warn('[Auth] Refresh after parse failure failed:', e);
+              await logout();
+              return;
+            }
+          }
+        }
+      } else if (storedRefreshToken) {
+        // No access token but we have a refresh token -> try to refresh
+        try {
+          await refreshAccessToken(storedRefreshToken);
+          setIsAuthenticated(true);
+          return;
+        } catch (err) {
+          console.warn('[Auth] Refresh with stored refresh token failed:', err);
+          await logout();
+          return;
+        }
       }
     } catch (error) {
       console.error('Failed to load stored auth:', error);
@@ -157,8 +249,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshAccessToken = async () => {
-    if (!refreshToken) throw new Error('No refresh token available');
+  const refreshAccessToken = async (refreshTokenArg?: string) => {
+    const tokenToUse = refreshTokenArg ?? refreshToken;
+    if (!tokenToUse) throw new Error('No refresh token available');
 
     try {
       const response = await fetch(discovery.tokenEndpoint, {
@@ -167,7 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           client_id: KEYCLOAK_CONFIG.clientId,
-          refresh_token: refreshToken,
+          refresh_token: tokenToUse,
         }).toString(),
       });
 
@@ -198,15 +291,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       
       if (refreshToken) {
-        console.log('[Auth] Revoking refresh token with Keycloak...');
-        await fetch(discovery.revocationEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            client_id: KEYCLOAK_CONFIG.clientId,
-            refresh_token: refreshToken,
-          }).toString(),
-        }).catch(console.error);
+        try {
+          console.log('[Auth] Revoking refresh token with Keycloak revoke endpoint...');
+          // Use token revocation endpoint to revoke the refresh token
+          await fetch(discovery.revocationEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              token: refreshToken,
+              token_type_hint: 'refresh_token',
+              client_id: KEYCLOAK_CONFIG.clientId,
+            }).toString(),
+          });
+        } catch (err) {
+          console.warn('[Auth] Refresh token revocation failed, attempting end-session logout as fallback', err);
+          // Fallback: call end-session endpoint to try to remove server-side session
+          try {
+            await fetch(discovery.endSessionEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                client_id: KEYCLOAK_CONFIG.clientId,
+                refresh_token: refreshToken,
+              }).toString(),
+            });
+          } catch (e) {
+            console.error('[Auth] End-session fallback failed:', e);
+          }
+        }
       }
 
       console.log('[Auth] Clearing local state...');

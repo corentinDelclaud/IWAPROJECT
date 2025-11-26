@@ -52,8 +52,8 @@ export default function HomeScreen() {
                 </Link>
                 <Link href="/(tabs)/profile" style={{ display: 'flex' }}>
                     <ThemedView style={{ backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.3)', borderWidth: 1, padding: 16, borderRadius: 12 }}>
-                        <ThemedText style={{ color: '#FDE68A', fontWeight: '700' }}>{t('common:home.reviews.title')}</ThemedText>
-                        <ThemedText style={{ color: '#9CA3AF' }}>{t('common:home.reviews.subtitle')}</ThemedText>
+                        <ThemedText style={{ color: '#FDE68A', fontWeight: '700' }}>{t('common:home.profile.title')}</ThemedText>
+                        <ThemedText style={{ color: '#9CA3AF' }}>{t('common:home.profile.subtitle')}</ThemedText>
                     </ThemedView>
                 </Link>
             </ThemedView>

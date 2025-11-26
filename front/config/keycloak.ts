@@ -22,7 +22,7 @@ export const KEYCLOAK_CONFIG = {
 // Backend API configuration
 export const API_CONFIG = {
   get baseUrl() {
-    return buildUrl(8081);
+    return buildUrl(8080); // API Gateway port
   },
   endpoints: {
     profile: '/api/users/profile',
