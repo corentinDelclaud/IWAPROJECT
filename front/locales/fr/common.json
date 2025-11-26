@@ -29,5 +29,10 @@
             "title": "Avis",
             "subtitle": "Gérer vos évaluations"
         }
+        ,
+        "profile": {
+            "title": "Profil",
+            "subtitle": "Voir les informations de votre compte"
+        }
     }
 }

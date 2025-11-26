@@ -98,7 +98,6 @@ export default function ProfileScreen() {
 
   const ProfileHeader = () => (
     <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 14, padding: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
         <View style={{ flex: 1 }}>
           <ThemedText type="title">{userProfile?.username || authUser?.preferred_username || 'User'}</ThemedText>
           <Text style={{ color: '#9CA3AF' }}>{userProfile?.email || authUser?.email || ''}</Text>
@@ -120,23 +119,6 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
-        
-        {/* Logout Button */}
-        <Pressable
-          onPress={handleLogout}
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: 'rgba(239, 68, 68, 0.3)',
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 14 }}>🚪 Logout</Text>
-        </Pressable>
-      </View>
     </View>
   );
 
@@ -151,37 +133,6 @@ export default function ProfileScreen() {
           </View>
         </View>
       ))}
-    </View>
-  );
-
-  const InfoAndSkills = () => (
-    <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-      <View style={{ flexGrow: 1, flexBasis: '48%', backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
-        <ThemedText type="defaultSemiBold">Informations personnelles</ThemedText>
-        <View style={{ height: 10 }} />
-        {[
-            ['Email', userProfile?.email || 'N/A'],
-            ['Prénom', userProfile?.firstName || 'N/A'],
-            ['Nom', userProfile?.lastName || 'N/A'],
-            ['ID', userProfile?.id?.substring(0, 8) || 'N/A'],
-        ].map(([label, value]) => (
-          <View key={label} style={{ marginBottom: 10 }}>
-            <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{label}</Text>
-            <Text style={{ color: theme.text }}>{value}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={{ flexGrow: 1, flexBasis: '48%', backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
-        <ThemedText type="defaultSemiBold">Spécialisations</ThemedText>
-        <View style={{ height: 10 }} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {['Valorant', 'League of Legends', 'CS2', 'Coaching', 'Analyse gameplay'].map((skill) => (
-            <View key={skill} style={{ backgroundColor: 'rgba(147,51,234,0.2)', borderColor: 'rgba(168,85,247,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 }}>
-              <Text style={{ color: '#C4B5FD' }}>{skill}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
     </View>
   );
 
@@ -241,13 +192,12 @@ export default function ProfileScreen() {
   );
 
   const TabsHeader = () => (
-    <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 8 }}>
+    // <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 8 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {([
           { id: 'profile', label: 'Profil' },
           { id: 'history', label: 'Historique' },
           { id: 'notifications', label: 'Notifications' },
-          { id: 'settings', label: 'Paramètres' },
         ] as const).map((tab) => (
           <Pressable
             key={tab.id}
@@ -265,7 +215,7 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
       </View>
-    </View>
+    // </View>
   );
 
   if (activeSection === 'history') {
@@ -356,18 +306,8 @@ export default function ProfileScreen() {
           <>
             <ProfileHeader />
             <StatsGrid />
-            <InfoAndSkills />
-              <ModifyProfile />
+            <ModifyProfile />
           </>
-        )}
-        {activeSection === 'settings' && (
-            <>
-              <View style={{ backgroundColor: theme.slateCard, borderColor: theme.slateBorder, borderWidth: 1, borderRadius: 12, padding: 16 }}>
-            <ThemedText type="defaultSemiBold">Paramètres du compte</ThemedText>
-            <Text style={{ color: '#9CA3AF', marginTop: 6 }}>Section des paramètres en développement...</Text>
-          </View>
-              <ModifyProfile />
-            </>
         )}
       </ScrollView>
     </ThemedView>
