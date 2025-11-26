@@ -14,13 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -41,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc
+@SuppressWarnings("null")
 class UserControllerTest {
 
     @Autowired
@@ -49,11 +48,7 @@ class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
     private UserService userService;
-
-    @MockBean
-    private JwtDecoder jwtDecoder;
 
     private User testUser;
     private UserProfileDTO testProfileDTO;
@@ -118,7 +113,7 @@ class UserControllerTest {
         when(userService.getOrCreateUser(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(testUser);
         when(userService.getUserProfile(anyString())).thenReturn(testProfileDTO);
-
+        
         // When & Then
         mockMvc.perform(get("/api/users/profile")
                         .with(jwt().jwt(testJwt)))

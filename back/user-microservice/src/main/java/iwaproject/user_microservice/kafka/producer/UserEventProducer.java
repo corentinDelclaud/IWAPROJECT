@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import java.util.Objects;
 
 /**
  * Kafka producer to publish user events to other microservices
@@ -24,9 +25,10 @@ public class UserEventProducer {
     private String userEventsTopic;
 
     public void publishUserEvent(UserEvent event) {
-        log.info("Publishing user event: {} for user: {}", event.getEventType(), event.getUserId());
-        
-        kafkaTemplate.send(userEventsTopic, event.getUserId(), event)
+        String userId = Objects.requireNonNull(event.getUserId(), "userId must not be null");
+        String topic = Objects.requireNonNull(userEventsTopic, "userEventsTopic must not be null");
+        log.info("Publishing user event: {} for user: {}", event.getEventType(), userId);
+        kafkaTemplate.send(topic, userId, event)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         log.error("Failed to publish user event: {}", event, ex);
@@ -34,5 +36,6 @@ public class UserEventProducer {
                         log.info("User event published successfully: {}", event.getEventType());
                     }
                 });
+                
     }
 }

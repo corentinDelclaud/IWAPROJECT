@@ -59,7 +59,8 @@ public class AuthService {
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
             
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, requestEntity, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.postForEntity(tokenUrl, requestEntity, 
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
             Map<String, Object> tokenResponse = response.getBody();
 
             if (tokenResponse == null) {
@@ -176,7 +177,8 @@ public class AuthService {
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
             
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, requestEntity, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.postForEntity(tokenUrl, requestEntity,
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
             Map<String, Object> tokenResponse = response.getBody();
 
             if (tokenResponse == null) {
@@ -241,18 +243,20 @@ public class AuthService {
             String userInfoUrl = serverUrl + "/realms/" + realm + "/protocol/openid-connect/userinfo";
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(accessToken);
+            if (accessToken != null) {
+                headers.setBearerAuth(accessToken);
+            }
 
             HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
             
-            ResponseEntity<Map> response = restTemplate.exchange(
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 userInfoUrl, 
-                HttpMethod.GET, 
+                Objects.requireNonNull(HttpMethod.GET), 
                 requestEntity, 
-                Map.class
+                (Class<Map<String, Object>>) (Class<?>) Map.class
             );
 
-            return response.getBody();
+            return response.getBody() != null ? response.getBody() : new HashMap<>();
 
         } catch (Exception e) {
             log.error("Failed to get user info: {}", e.getMessage());

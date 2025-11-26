@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Service to handle webhook events from Keycloak and sync users to the database
@@ -28,12 +29,12 @@ public class UserWebhookService {
         log.info("Creating user from Keycloak webhook: {}", webhookData.getId());
 
         // Check if user already exists (to handle duplicate events)
-        if (userRepository.existsById(webhookData.getId())) {
-            log.warn("User {} already exists, updating instead", webhookData.getId());
-            updateUser(webhookData.getId(), webhookData);
+        String userId = webhookData.getId();
+        if (userId != null && userRepository.existsById(userId)) {
+            log.warn("User {} already exists, updating instead", userId);
+            updateUser(userId, webhookData);
             return;
         }
-
         User user = User.builder()
                 .id(webhookData.getId()) // Use Keycloak ID as primary key
                 .username(webhookData.getUsername())
@@ -42,6 +43,7 @@ public class UserWebhookService {
                 .lastName(webhookData.getLastName())
                 .build();
 
+        userRepository.save(Objects.requireNonNull(user));
         userRepository.save(user);
         log.info("User {} created successfully in local database", user.getId());
     }
@@ -52,6 +54,10 @@ public class UserWebhookService {
     @Transactional
     public void updateUser(String userId, KeycloakUserWebhookDTO webhookData) {
         log.info("Updating user from Keycloak webhook: {}", userId);
+
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
 
         User user = userRepository.findById(userId)
                 .orElseGet(() -> {
@@ -75,6 +81,10 @@ public class UserWebhookService {
     @Transactional
     public void deleteUser(String userId) {
         log.info("Soft deleting user from Keycloak webhook: {}", userId);
+
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
