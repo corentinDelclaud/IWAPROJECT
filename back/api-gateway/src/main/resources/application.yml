@@ -28,7 +28,7 @@ spring:
           predicates:
             - Path=/api/products/**
           filters:
-            - RewritePath=/api/products/(?<segment>.*), /api/products/$\{segment}
+            - PreserveHostHeader
 
       # Configuration globale CORS
       globalcors:
