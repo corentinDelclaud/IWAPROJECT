@@ -75,39 +75,40 @@ export function MobileHeader() {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="game-controller" size={20} color="#A78BFA" />
-          <Text style={{
-            fontWeight: '700',
-            fontSize: 18,
-            backgroundClip: 'text' as any,
-            color: '#C4B5FD',
-          }}>Next Level</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/')}
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+            hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
+          >
+            <Text style={{
+              fontWeight: '700',
+              fontSize: 18,
+              color: '#C4B5FD',
+            }}>
+              Next Level
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <TouchableOpacity style={{ padding: 8, borderRadius: 10, backgroundColor: 'rgba(51,65,85,0.4)' }}>
-            <Ionicons name="search" size={18} color={theme.text} />
-          </TouchableOpacity>
-          <View>
-            <TouchableOpacity style={{ padding: 8, borderRadius: 10, backgroundColor: 'rgba(51,65,85,0.4)' }}>
-              <Ionicons name="notifications-outline" size={18} color={theme.text} />
-            </TouchableOpacity>
-            <View style={{ position: 'absolute', top: -2, right: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>3</Text>
-            </View>
-          </View>
+          {/* Language Switcher */}
+          <LanguageSwitcher/>
           
           {/* Logout Button */}
           <TouchableOpacity 
             onPress={handleLogout}
-            style={{ padding: 8, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+            style={{ padding: 6, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
           >
             <Ionicons name="log-out-outline" size={18} color="#EF4444" />
           </TouchableOpacity>
           
           {/* User Avatar */}
-          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(147,51,234,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(147,51,234,0.5)', alignItems: 'center', justifyContent: 'center' }}
+          >
             <Text style={{ color: 'white', fontWeight: '700' }}>{getUserInitial()}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
       
