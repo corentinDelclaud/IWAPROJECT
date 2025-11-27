@@ -7,16 +7,14 @@ public record TransactionResponse(
     Integer id,
     TransitionState state,
     Integer serviceId,
-    Integer conversationId,
-    Integer idClient,
-    Integer idProvider
+    String idClient,     // String au lieu de Integer
+    String idProvider    // String au lieu de Integer
 ) {
     public static TransactionResponse fromEntity(Transaction transaction) {
         return new TransactionResponse(
             transaction.getId(),
             transaction.getTransactionState(),
             transaction.getIdService(),
-            transaction.getIdConversation(),
             transaction.getIdClient(),
             transaction.getIdProvider()
         );

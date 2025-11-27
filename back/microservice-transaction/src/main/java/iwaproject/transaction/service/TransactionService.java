@@ -1,13 +1,10 @@
 package iwaproject.transaction.service;
 
 import iwaproject.transaction.dto.CreateTransactionRequest;
+import iwaproject.transaction.dto.ProductDTO;
 import iwaproject.transaction.dto.UpdateStateRequest;
 import iwaproject.transaction.enums.TransitionState;
-import iwaproject.transaction.model.Conversation;
-import iwaproject.transaction.model.Product;
 import iwaproject.transaction.model.Transaction;
-import iwaproject.transaction.repository.ConversationRepository;
-import iwaproject.transaction.repository.ProductRepository;
 import iwaproject.transaction.repository.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,27 +19,36 @@ public class TransactionService {
     private static final Logger log = LoggerFactory.getLogger(TransactionService.class);
     
     private final TransactionRepository transactionRepository;
-    private final ConversationRepository conversationRepository;
-    private final ProductRepository productRepository;
+    private final CatalogServiceClient catalogServiceClient;
     
-    public TransactionService(TransactionRepository transactionRepository, 
-                            ConversationRepository conversationRepository,
-                            ProductRepository productRepository) {
+    public TransactionService(TransactionRepository transactionRepository,
+                             CatalogServiceClient catalogServiceClient) {
         this.transactionRepository = transactionRepository;
-        this.conversationRepository = conversationRepository;
-        this.productRepository = productRepository;
+        this.catalogServiceClient = catalogServiceClient;
     }
     
     @Transactional
-    public Transaction createTransaction(CreateTransactionRequest request) {
-        log.info("Creating transaction for userId={}, serviceId={}", request.userId(), request.serviceId());
+    public Transaction createTransaction(CreateTransactionRequest request, String userIdFromHeader) {
+        String userId = validateUserId(userIdFromHeader);  // Gardé comme String
         
-        Product product = productRepository.findById(request.serviceId())
-            .orElseThrow(() -> new IllegalArgumentException("Service not found"));
+        log.info("Creating transaction for userId={} (from JWT), serviceId={}", 
+                userId, request.serviceId());
+        
+        // Récupérer le produit depuis le service-catalog via gateway
+        ProductDTO product = catalogServiceClient.getProductById(request.serviceId());
+        
+        // Vérifier la disponibilité
+        if (product.isAvailable() == null || !product.isAvailable()) {
+            log.warn("#debuglog Product {} is not available", request.serviceId());
+            throw new IllegalStateException("Product is not available for purchase");
+        }
+        
+        log.info("#debuglog Product {} is available, idProvider={}", 
+                request.serviceId(), product.idProvider());
         
         // Vérifier qu'aucune transaction active n'existe déjà
         transactionRepository.findByIdClientAndIdServiceAndTransactionStateNotIn(
-            request.userId(),
+            userId,
             request.serviceId(),
             java.util.List.of(TransitionState.FINISHED_AND_PAYED, TransitionState.CANCELED)
         ).ifPresent(existingTransaction -> {
@@ -55,19 +61,21 @@ public class TransactionService {
             ? TransitionState.REQUESTED 
             : TransitionState.EXCHANGING;
         
-        Conversation conversation = new Conversation(request.userId(), product.getIdProvider());
-        conversation = conversationRepository.save(conversation);
+        // Hook pour création de conversation (non implémenté)
+        log.info("#debuglog Conversation creation hook triggered for client={} and provider={} - NOT IMPLEMENTED YET",
+                userId, product.idProvider());
         
+        // Créer transaction avec idProvider du produit (String)
         Transaction transaction = new Transaction(
             initialState,
             request.serviceId(),
-            request.userId(),
-            product.getIdProvider(),
-            conversation.getId()
+            userId,
+            product.idProvider()
         );
         
         Transaction saved = transactionRepository.save(transaction);
-        log.info("Transaction created: id={}, state={}", saved.getId(), initialState);
+        log.info("Transaction created: id={}, state={}, provider={}", 
+                saved.getId(), initialState, product.idProvider());
         return saved;
     }
     
@@ -78,13 +86,15 @@ public class TransactionService {
     }
     
     @Transactional
-    public Transaction updateState(Integer transactionId, UpdateStateRequest request) {
-        log.info("Updating transaction {} state to {} by user {}", transactionId, request.newState(), request.userId());
+    public Transaction updateState(Integer transactionId, UpdateStateRequest request, String userIdFromHeader) {
+        String userId = validateUserId(userIdFromHeader);  // Gardé comme String
+        
+        log.info("Updating transaction {} state to {} by user {} (from JWT)", 
+                transactionId, request.newState(), userId);
         
         Transaction transaction = getTransaction(transactionId);
         TransitionState currentState = transaction.getTransactionState();
         TransitionState newState = request.newState();
-        Integer userId = request.userId();
         
         validateStateTransition(transaction, currentState, newState, userId);
         
@@ -102,8 +112,18 @@ public class TransactionService {
         return saved;
     }
     
+    private String validateUserId(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            log.error("#debuglog Missing X-User-Id header from JWT");
+            throw new IllegalArgumentException("User ID header is missing");
+        }
+        
+        log.debug("#debuglog Validated user ID from JWT header: {}", userIdHeader);
+        return userIdHeader;  // Retourne directement le String (UUID)
+    }
+    
     private void validateStateTransition(Transaction transaction, TransitionState current, 
-                                        TransitionState target, Integer userId) {
+                                        TransitionState target, String userId) {  // String au lieu de Integer
         log.debug("Validating state transition: {} -> {} for user {}", current, target, userId);
         
         if (current == TransitionState.CANCELED || current == TransitionState.FINISHED_AND_PAYED) {
@@ -126,8 +146,8 @@ public class TransactionService {
             case PREPAID -> {
                 if (current != TransitionState.REQUEST_ACCEPTED) 
                     throw new IllegalStateException("Can only prepay from REQUEST_ACCEPTED");
-                if (!userId.equals(999)) 
-                    throw new IllegalStateException("Only test user 999 can trigger prepayment");
+                // Supprimé le check userId == 999 car UUID maintenant
+                log.warn("#debuglog PREPAID state set - payment validation should be handled by external service");
             }
             case CLIENT_CONFIRMED -> {
                 if (current != TransitionState.PREPAID && current != TransitionState.PROVIDER_CONFIRMED)
@@ -157,7 +177,7 @@ public class TransactionService {
         }
     }
     
-    private void handleConfirmation(Transaction transaction, Integer userId) {
+    private void handleConfirmation(Transaction transaction, String userId) {  // String au lieu de Integer
         boolean isClient = userId.equals(transaction.getIdClient());
         boolean isProvider = userId.equals(transaction.getIdProvider());
         
@@ -167,7 +187,6 @@ public class TransactionService {
         
         TransitionState current = transaction.getTransactionState();
         
-        // Vérifier qu'on vient bien de PREPAID ou d'une confirmation partielle
         if (current != TransitionState.PREPAID && 
             current != TransitionState.CLIENT_CONFIRMED && 
             current != TransitionState.PROVIDER_CONFIRMED) {
@@ -179,7 +198,6 @@ public class TransactionService {
         } else if (current == TransitionState.PROVIDER_CONFIRMED && isClient) {
             transaction.setTransactionState(TransitionState.DOUBLE_CONFIRMED);
         }
-        // Si on est en PREPAID, le state reste CLIENT_CONFIRMED ou PROVIDER_CONFIRMED (déjà set avant l'appel)
     }
     
     private void handleDoubleConfirmation(Transaction transaction) {

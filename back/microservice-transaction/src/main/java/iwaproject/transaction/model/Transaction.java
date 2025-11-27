@@ -22,42 +22,39 @@ public class Transaction {
     @Column(name = "finish_date")
     private LocalDateTime finishDate;
     
-    @Column(name = "id_conversation", nullable = false)
-    private Integer idConversation;
-    
     @Column(name = "id_service", nullable = false)
     private Integer idService;
     
     @Column(name = "id_client", nullable = false)
-    private Integer idClient;
+    private String idClient;  // UUID au lieu de Integer
     
     @Column(name = "id_provider", nullable = false)
-    private Integer idProvider;
+    private String idProvider;  // UUID au lieu de Integer
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
     protected Transaction() {}
     
-    public Transaction(TransitionState state, Integer idService, Integer idClient, Integer idProvider, Integer idConversation) {
+    public Transaction(TransitionState state, Integer idService, String idClient, String idProvider) {
         this.transactionState = state;
         this.idService = idService;
         this.idClient = idClient;
         this.idProvider = idProvider;
-        this.idConversation = idConversation;
         this.createdAt = LocalDateTime.now();
     }
     
+    // Getters
     public Integer getId() { return id; }
     public TransitionState getTransactionState() { return transactionState; }
     public LocalDateTime getRequestValidationDate() { return requestValidationDate; }
     public LocalDateTime getFinishDate() { return finishDate; }
-    public Integer getIdConversation() { return idConversation; }
     public Integer getIdService() { return idService; }
-    public Integer getIdClient() { return idClient; }
-    public Integer getIdProvider() { return idProvider; }
+    public String getIdClient() { return idClient; }
+    public String getIdProvider() { return idProvider; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     
+    // Setters
     public void setTransactionState(TransitionState state) { this.transactionState = state; }
     public void setRequestValidationDate(LocalDateTime date) { this.requestValidationDate = date; }
     public void setFinishDate(LocalDateTime date) { this.finishDate = date; }

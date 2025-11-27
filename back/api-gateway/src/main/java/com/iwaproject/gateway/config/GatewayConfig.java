@@ -20,6 +20,9 @@ public class GatewayConfig {
     @Value("${services.user.url:http://localhost:8081}")
     private String userServiceUrl;
 
+    @Value("${services.product.url:http://localhost:8083}")
+    private String productServiceUrl;
+
     @Value("${services.transaction.url:http://localhost:8084}")
     private String transactionServiceUrl;
 
@@ -29,7 +32,7 @@ public class GatewayConfig {
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
-                // ==================== KEYCLOAK ROUTES (Proxy pour le frontend) ====================
+                // ==================== KEYCLOAK ROUTES ====================
                 .route("keycloak-realms", r -> r
                         .path("/realms/**")
                         .filters(f -> f
@@ -41,7 +44,7 @@ public class GatewayConfig {
                         .path("/resources/**")
                         .uri(keycloakUrl))
                 
-                // ==================== AUTH SERVICE ROUTES (Publiques) ====================
+                // ==================== AUTH SERVICE ROUTES ====================
                 .route("auth-login", r -> r
                         .path("/api/auth/login")
                         .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/api/auth/${segment}"))
@@ -72,32 +75,99 @@ public class GatewayConfig {
                         .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)", "/${segment}"))
                         .uri(authServiceUrl))
                 
-                        // ==================== USER SERVICE ROUTES ====================
-                        // Note: Routes plus spécifiques en premier pour éviter les conflits
+                // ==================== USER SERVICE ROUTES ====================
+                .route("user-actuator", r -> r
+                        .order(1)
+                        .path("/api/users/actuator/**")
+                        .filters(f -> f.rewritePath("/api/users/(?<segment>.*)", "/${segment}"))
+                        .uri(userServiceUrl))
                 
-                        // Route publique pour actuator (monitoring)
-                        .route("user-actuator", r -> r
-                                .order(1)  // Priorité haute
-                                .path("/api/users/actuator/**")
-                                .filters(f -> f.rewritePath("/api/users/(?<segment>.*)", "/${segment}"))
-                                .uri(userServiceUrl))
+                .route("user-profile", r -> r
+                        .order(2)
+                        .path("/api/users/profile")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                        .uri(userServiceUrl))
                 
-                        // Routes protégées par JWT
-                        .route("user-profile", r -> r
-                                .order(2)
-                                .path("/api/users/profile")
-                                .filters(f -> f
-                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
-                                .uri(userServiceUrl))
+                .route("user-management", r -> r
+                        .order(3)
+                        .path("/api/users/**")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                        .uri(userServiceUrl))
                 
-                        .route("user-management", r -> r
-                                .order(3)
-                                .path("/api/users/**")
-                                .filters(f -> f
-                                        .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
-                                .uri(userServiceUrl))
+                // ==================== CATALOG/PRODUCT SERVICE ROUTES ====================
+                // AJOUTÉ ICI - Routes publiques pour le catalog
+                .route("catalog-get-all", r -> r
+                        .order(1)
+                        .path("/api/products")
+                        .and().method("GET")
+                        .uri(productServiceUrl))
                 
-                // ==================== WEBHOOK ROUTES (Internes - Keycloak extension) ====================
+                .route("catalog-get-by-id", r -> r
+                        .order(2)
+                        .path("/api/products/{id}")
+                        .and().method("GET")
+                        .uri(productServiceUrl))
+                
+                .route("catalog-search", r -> r
+                        .order(3)
+                        .path("/api/products/search")
+                        .and().method("GET")
+                        .uri(productServiceUrl))
+                
+                .route("catalog-by-game", r -> r
+                        .order(4)
+                        .path("/api/products/game/**")
+                        .and().method("GET")
+                        .uri(productServiceUrl))
+                
+                .route("catalog-by-type", r -> r
+                        .order(5)
+                        .path("/api/products/type/**")
+                        .and().method("GET")
+                        .uri(productServiceUrl))
+                
+                .route("catalog-by-provider", r -> r
+                        .order(6)
+                        .path("/api/products/provider/**")
+                        .and().method("GET")
+                        .uri(productServiceUrl))
+                
+                // Routes protégées par JWT pour la gestion des produits
+                .route("catalog-create", r -> r
+                        .order(7)
+                        .path("/api/products")
+                        .and().method("POST")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                        .uri(productServiceUrl))
+                
+                .route("catalog-update", r -> r
+                        .order(8)
+                        .path("/api/products/{id}")
+                        .and().method("PUT")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                        .uri(productServiceUrl))
+                
+                .route("catalog-delete", r -> r
+                        .order(9)
+                        .path("/api/products/{id}")
+                        .and().method("DELETE")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                        .uri(productServiceUrl))
+                
+                .route("catalog-toggle", r -> r
+                        .order(10)
+                        .path("/api/products/{id}/toggle-availability")
+                        .and().method("PATCH")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
+                        .uri(productServiceUrl))
+                
+                // ==================== WEBHOOK ROUTES ====================
                 .route("webhooks", r -> r
                         .path("/api/webhooks/**")
                         .filters(f -> f.rewritePath("/api/webhooks/(?<segment>.*)", "/api/webhooks/${segment}"))
