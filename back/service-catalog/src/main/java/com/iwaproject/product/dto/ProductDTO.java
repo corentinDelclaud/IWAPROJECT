@@ -16,7 +16,7 @@ public class ProductDTO {
     private Float price;
     private Boolean unique;
     private Boolean isAvailable;
-    private Integer idProvider;
+    private String idProvider;
 
     // Constructeur à partir de l'entité
     public static ProductDTO fromEntity(Product product) {

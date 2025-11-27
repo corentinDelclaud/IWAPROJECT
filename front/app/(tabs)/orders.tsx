@@ -1,13 +1,11 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Pressable, Text, View, ScrollView, Modal, TextInput, Alert } from 'react-native';
+import { Pressable, Text, View, ScrollView, Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useTranslation } from 'react-i18next';
 import { fetchProductsByProvider, deleteProduct } from '@/services/productService';
 import { apiService } from '@/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserService {
     id: number;
@@ -24,11 +22,11 @@ interface UserService {
 export default function ServicesManagementScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const { t } = useTranslation('orders');
+    const textSecondary = colorScheme === 'dark' ? (theme as typeof Colors.dark).textSecondary : theme.icon;
     const [activeTab, setActiveTab] = useState<'all' | 'available' | 'unavailable'>('all');
     const [services, setServices] = useState<UserService[]>([]);
     const [loading, setLoading] = useState(true);
-    const [userId, setUserId] = useState<number | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
         initializeAndLoadServices();
@@ -38,10 +36,9 @@ export default function ServicesManagementScreen() {
         try {
             // Récupérer l'ID utilisateur depuis le profil
             const profile = await apiService.getUserProfile();
-            const userIdNum = parseInt(profile.id);
-            setUserId(userIdNum);
+            setUserId(profile.id);
 
-            await loadUserProducts(userIdNum);
+            await loadUserProducts(profile.id);
         } catch (error) {
             console.error('Error initializing:', error);
             Alert.alert('Erreur', 'Impossible de charger vos informations');
@@ -49,7 +46,7 @@ export default function ServicesManagementScreen() {
         }
     };
 
-    const loadUserProducts = async (providerId: number) => {
+    const loadUserProducts = async (providerId: string) => {
         setLoading(true);
         try {
             const products = await fetchProductsByProvider(providerId);
@@ -123,13 +120,13 @@ export default function ServicesManagementScreen() {
                         <Pressable
                             key={tab}
                             onPress={() => setActiveTab(tab)}
-                            style={{
-                                flex: 1,
-                                paddingVertical: 10,
-                                paddingHorizontal: 16,
-                                borderRadius: 8,
-                                backgroundColor: activeTab === tab ? theme.primary : theme.card,
-                            }}
+                        style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            paddingHorizontal: 16,
+                            borderRadius: 8,
+                            backgroundColor: activeTab === tab ? theme.tint : theme.slateBg,
+                        }}
                         >
                             <Text style={{ color: activeTab === tab ? '#fff' : theme.text, fontWeight: '600', textAlign: 'center' }}>
                                 {tab === 'all' ? 'Tous' : tab === 'available' ? 'Disponibles' : 'Indisponibles'}
@@ -140,7 +137,7 @@ export default function ServicesManagementScreen() {
 
                 {/* Services List */}
                 {filteredServices.map(service => (
-                    <View key={service.id} style={{ backgroundColor: theme.card, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                    <View key={service.id} style={{ backgroundColor: theme.slateCard, borderRadius: 12, padding: 16, marginBottom: 12 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                             <ThemedText style={{ fontSize: 18, fontWeight: '600' }}>{service.title}</ThemedText>
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: service.online ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)' }}>
@@ -150,7 +147,7 @@ export default function ServicesManagementScreen() {
                             </View>
                         </View>
 
-                        <Text style={{ color: theme.textSecondary, marginBottom: 12 }}>{service.description}</Text>
+                        <Text style={{ color: textSecondary, marginBottom: 12 }}>{service.description}</Text>
 
                         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                             <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(99,102,241,0.1)' }}>
@@ -162,7 +159,7 @@ export default function ServicesManagementScreen() {
                         </View>
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <ThemedText style={{ fontSize: 20, fontWeight: '700', color: theme.primary }}>{service.price}</ThemedText>
+                            <ThemedText style={{ fontSize: 20, fontWeight: '700', color: theme.tint }}>{service.price}</ThemedText>
 
                             <Pressable
                                 onPress={() => handleDeleteService(service.id)}
@@ -176,7 +173,7 @@ export default function ServicesManagementScreen() {
 
                 {filteredServices.length === 0 && (
                     <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                        <Text style={{ color: theme.textSecondary }}>Aucun service trouvé</Text>
+                        <Text style={{ color: textSecondary }}>Aucun service trouvé</Text>
                     </View>
                 )}
             </ScrollView>

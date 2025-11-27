@@ -36,5 +36,5 @@ public class Product {
     private Boolean isAvailable = true;
 
     @Column("id_provider")
-    private Integer idProvider;
+    private String idProvider;
 }
