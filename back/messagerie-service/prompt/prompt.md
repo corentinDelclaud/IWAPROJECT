@@ -24,7 +24,7 @@ le résultat est une liste de (content : string, isMine : boolean), classique
 
 post : crée un message sur une conversation (content + conversation id). 
 
-que faire
+## 
 
 
 
