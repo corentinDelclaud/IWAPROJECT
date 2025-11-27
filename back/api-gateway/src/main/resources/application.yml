@@ -84,6 +84,11 @@ services:
   keycloak:
     url: http://localhost:9090
 
+# Configuration Keycloak pour validation JWT
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8085}
+  realm: ${KEYCLOAK_REALM:IWA_NextLevel}
+
 # Configuration du monitoring
 management:
   endpoints:
