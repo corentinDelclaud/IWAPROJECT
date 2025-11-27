@@ -54,7 +54,7 @@ public class ProductController {
 
     // GET /api/products/provider/{idProvider} - Récupérer les services d'un provider
     @GetMapping("/provider/{idProvider}")
-    public ResponseEntity<List<ProductDTO>> getProductsByProvider(@PathVariable Integer idProvider) {
+    public ResponseEntity<List<ProductDTO>> getProductsByProvider(@PathVariable String idProvider) {
         return ResponseEntity.ok(productService.getProductsByProvider(idProvider));
     }
 
@@ -100,7 +100,7 @@ public class ProductController {
             @RequestParam(required = false) Game game,
             @RequestParam(required = false) Float minPrice,
             @RequestParam(required = false) Float maxPrice,
-            @RequestParam(required = false) Integer idProvider
+            @RequestParam(required = false) String idProvider
     ) {
         List<ProductDTO> products = productService.getProductsByFilters(
                 game, type, minPrice, maxPrice, idProvider

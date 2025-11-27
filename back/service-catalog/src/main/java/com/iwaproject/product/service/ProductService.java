@@ -63,7 +63,7 @@ public class ProductService {
     }
 
     // Récupérer les services d'un provider
-    public List<ProductDTO> getProductsByProvider(Integer idProvider) {
+    public List<ProductDTO> getProductsByProvider(String idProvider) {
         return productRepository.findByIdProvider(idProvider).stream()
                 .map(ProductDTO::fromEntity)
                 .collect(Collectors.toList());
@@ -127,7 +127,7 @@ public class ProductService {
                                                  ServiceType serviceType,
                                                  Float minPrice,
                                                  Float maxPrice,
-                                                 Integer idProvider) {
+                                                 String idProvider) {
 
         String gameStr = (game == null) ? null : game.name();
         String typeStr = (serviceType == null) ? null : serviceType.name();
