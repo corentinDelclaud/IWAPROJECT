@@ -40,7 +40,7 @@ interface BackendProduct {
     price: number;
     game: string;
     serviceType: string;
-    idProvider: number;
+    idProvider: string;  // UUID du provider Keycloak
     providerName?: string;
     imageUrl?: string;
     rating?: number;
@@ -144,7 +144,7 @@ export async function fetchProductsByFilters(filters: {
     type?: string;
     minPrice?: number;
     maxPrice?: number;
-    idProvider?: number;
+    idProvider?: string;  // UUID du provider
 }): Promise<Product[]> {
     try {
         // Construction des paramètres de requête
@@ -238,10 +238,10 @@ export async function deleteProduct(id: number): Promise<boolean> {
 
 /**
  * Récupère les produits d'un fournisseur spécifique
- * @param idProvider - L'identifiant du fournisseur
+ * @param idProvider - L'identifiant du fournisseur (UUID)
  * @returns Promise<Product[]> - Liste des produits du fournisseur
  */
-export async function fetchProductsByProvider(idProvider: number): Promise<Product[]> {
+export async function fetchProductsByProvider(idProvider: string): Promise<Product[]> {
     try {
         const url = `${API_BASE_URL}/provider/${idProvider}`;
         console.log(`Fetching products for provider ${idProvider} from:`, url);
