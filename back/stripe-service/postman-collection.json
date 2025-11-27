@@ -1,0 +1,426 @@
+{
+  "info": {
+    "name": "Stripe Service API - IWA Project",
+    "description": "Spring Boot Stripe Integration Service - All endpoints for Connect, Products, Checkout, and Webhooks",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "stripe-service-iwa",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8090",
+      "type": "string"
+    },
+    {
+      "key": "accountId",
+      "value": "acct_1SUOWHKYBDz52jgK",
+      "type": "string"
+    },
+    {
+      "key": "priceId",
+      "value": "price_xxxxxxxxxxxxx",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "cs_test_xxxxxxxxxxxxx",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Check if the service is running"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connect Accounts",
+      "item": [
+        {
+          "name": "1. Create Connect Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.accountId) {",
+                  "        pm.collectionVariables.set('accountId', jsonData.accountId);",
+                  "        console.log('Account ID saved: ' + jsonData.accountId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/connect-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "connect-account"]
+            },
+            "description": "Create a new Stripe Connect Express account for a merchant"
+          }
+        },
+        {
+          "name": "2. Create Account Link (Onboarding)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/account-link",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "account-link"]
+            },
+            "description": "Generate an onboarding link for the merchant to complete their account setup"
+          }
+        },
+        {
+          "name": "3. Get Account Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/account-status/{{accountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "account-status", "{{accountId}}"]
+            },
+            "description": "Check the status of a Connect account (payouts enabled, charges enabled, details submitted)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "4. Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.priceId) {",
+                  "        pm.collectionVariables.set('priceId', jsonData.priceId);",
+                  "        console.log('Price ID saved: ' + jsonData.priceId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Coaching Valorant\",\n  \"productDescription\": \"Session de coaching 1h personnalisée\",\n  \"productPrice\": 5000,\n  \"accountId\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/product",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "product"]
+            },
+            "description": "Create a new product with a price on a connected account (price in cents, e.g., 5000 = 50.00 EUR)"
+          }
+        },
+        {
+          "name": "5. List Products for Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/products/{{accountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "products", "{{accountId}}"]
+            },
+            "description": "List all products for a specific connected account"
+          }
+        },
+        {
+          "name": "5b. List Platform Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/products/platform",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "products", "platform"]
+            },
+            "description": "List all products on the platform account"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Checkout & Payment",
+      "item": [
+        {
+          "name": "6. Create Checkout Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.url) {",
+                  "        console.log('Checkout URL: ' + jsonData.url);",
+                  "        console.log('Open this URL in your browser to complete the checkout');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"priceId\": \"{{priceId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/checkout-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "checkout-session"]
+            },
+            "description": "Create a checkout session for one-time payment or subscription. Returns a URL to redirect the customer to."
+          }
+        },
+        {
+          "name": "7. Subscribe to Platform",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.url) {",
+                  "        console.log('Subscription URL: ' + jsonData.url);",
+                  "        console.log('Open this URL in your browser to subscribe to platform');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/subscribe-platform",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "subscribe-platform"]
+            },
+            "description": "Subscribe a connected account to the platform's subscription service"
+          }
+        },
+        {
+          "name": "8. Create Portal Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/portal-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "portal-session"]
+            },
+            "description": "Create a customer portal session for managing subscriptions. Redirects to Stripe's portal."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Webhook Endpoint (Test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Stripe-Signature",
+                "value": "test_signature_header",
+                "description": "In production, this is generated by Stripe"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test_webhook\",\n  \"object\": \"event\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"cs_test_example\",\n      \"status\": \"complete\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "webhook"]
+            },
+            "description": "Webhook endpoint for Stripe events. In production, use Stripe CLI: stripe listen --forward-to localhost:8090/api/stripe/webhook"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Example: Full Flow",
+      "item": [
+        {
+          "name": "Step 1 - Create Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newmerchant@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/connect-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "connect-account"]
+            }
+          }
+        },
+        {
+          "name": "Step 2 - Get Onboarding Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/account-link",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "account-link"]
+            }
+          }
+        },
+        {
+          "name": "Step 3 - Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Premium Service\",\n  \"productDescription\": \"High quality service\",\n  \"productPrice\": 9900,\n  \"accountId\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/product",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "product"]
+            }
+          }
+        },
+        {
+          "name": "Step 4 - Create Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"priceId\": \"{{priceId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/checkout-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "checkout-session"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

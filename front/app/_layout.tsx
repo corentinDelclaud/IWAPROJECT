@@ -55,23 +55,23 @@ export default function RootLayout() {
     const segments = useSegments();
     const router = useRouter();
 
-    useEffect(() => {
-      if (isLoading) return;
+      useEffect(() => {
+          if (isLoading) return;
 
-      const inAuthGroup = segments[0] === '(tabs)';
+          const inAuthGroup = segments[0] === '(tabs)';
+          const inPublicRoute = segments[0] === 'product' || segments[0] === 'login'; // ✅ Routes publiques autorisées
 
-      if (!isAuthenticated && inAuthGroup) {
-        // Redirect to login if not authenticated
-        console.log('[Navigation] User not authenticated, redirecting to login');
-        router.replace('/login' as any);
-      } else if (isAuthenticated && !inAuthGroup) {
-        // Redirect to tabs if authenticated
-        console.log('[Navigation] User authenticated, redirecting to tabs');
-        router.replace('/(tabs)');
-      }
-    }, [isAuthenticated, isLoading, segments, router]);
+          if (!isAuthenticated && inAuthGroup) {
+              console.log('[Navigation] User not authenticated, redirecting to login');
+              router.replace('/login' as any);
+          } else if (isAuthenticated && !inAuthGroup && !inPublicRoute) {
+              console.log('[Navigation] User authenticated, redirecting to tabs');
+              router.replace('/(tabs)');
+          }
+      }, [isAuthenticated, isLoading, segments, router]);
 
-    if (isLoading) {
+
+      if (isLoading) {
       return (
         <GradientBackground>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

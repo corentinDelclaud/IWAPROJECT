@@ -14,13 +14,13 @@ spring:
           filters:
             - RewritePath=/auth/(?<segment>.*), /$\{segment}
 
-        # Route pour le service utilisateur
-        - id: user-service
-          uri: ${services.user.url}
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - RewritePath=/api/users/(?<segment>.*), /api/users/$\{segment}
+        # Route pour le service utilisateur (commented out - using Java config for JWT auth)
+        # - id: user-service
+        #   uri: ${services.user.url}
+        #   predicates:
+        #     - Path=/api/users/**
+        #   filters:
+        #     - RewritePath=/api/users/(?<segment>.*), /api/users/$\{segment}
 
         # Route pour le service produit/catalog
         - id: product-service
@@ -28,7 +28,7 @@ spring:
           predicates:
             - Path=/api/products/**
           filters:
-            - RewritePath=/api/products/(?<segment>.*), /api/products/$\{segment}
+            - PreserveHostHeader
 
         # Route pour le service transaction
         - id: transaction-service

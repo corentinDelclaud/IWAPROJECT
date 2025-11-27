@@ -110,7 +110,8 @@ public class UserController {
         log.info("GET /api/users - page: {}, size: {}, sortBy: {}, direction: {}", 
                 page, size, sortBy, sortDirection);
         
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+        String resolvedSortDirection = sortDirection != null ? sortDirection : "DESC";
+        Sort.Direction direction = Sort.Direction.fromString(resolvedSortDirection);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         
         Page<UserPublicDTO> users = userService.getAllUsers(pageable);

@@ -29,5 +29,10 @@
             "title": "Bewertungen",
             "subtitle": "Deine Bewertungen verwalten"
         }
+        ,
+        "profile": {
+            "title": "Profil",
+            "subtitle": "Ihre Kontoinformationen ansehen und bearbeiten"
+        }
     }
 }

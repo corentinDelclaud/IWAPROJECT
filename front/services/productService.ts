@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
-        return 'http://162.38.39.105:8080';
+        return `http://${process.env.EXPO_PUBLIC_API_HOST}:8080`;
     }
     // Pour iOS simulator ou web
     return 'http://localhost:8080';
@@ -53,7 +53,7 @@ interface BackendProduct {
 function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
     return {
         id: backendProduct.idService,
-        title: backendProduct.name,
+        title: backendProduct.name || backendProduct.description?.split('-')[0]?.trim() || 'Produit sans titre',
         description: backendProduct.description,
         price: `${backendProduct.price}€`,  // Formatage du prix avec le symbole €
         game: backendProduct.game?.toLowerCase() || 'all',
@@ -186,3 +186,78 @@ export async function fetchProductsByFilters(filters: {
     }
 }
 
+/**
+ * Créer un nouveau produit
+ * @param product - Les données du produit à créer
+ * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ */
+export async function createProduct(product: Omit<BackendProduct, 'idService'>): Promise<Product | null> {
+    try {
+        const response = await fetch(API_BASE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(product),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: BackendProduct = await response.json();
+        return mapBackendProductToFrontend(data);
+    } catch (error) {
+        console.error('Error creating product:', error);
+        return null;
+    }
+}
+
+/**
+ * Supprimer un nouveau produit
+ * @param product - Les données du produit à créer
+ * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ */
+export async function deleteProduct(id: number): Promise<boolean> {
+    try {
+        const url = `${API_BASE_URL}/${id}`;
+        const response = await fetch(url, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        return false;
+    }
+}
+
+/**
+ * Récupère les produits d'un fournisseur spécifique
+ * @param idProvider - L'identifiant du fournisseur
+ * @returns Promise<Product[]> - Liste des produits du fournisseur
+ */
+export async function fetchProductsByProvider(idProvider: number): Promise<Product[]> {
+    try {
+        const url = `${API_BASE_URL}/provider/${idProvider}`;
+        console.log(`Fetching products for provider ${idProvider} from:`, url);
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: BackendProduct[] = await response.json();
+        console.log(`Received ${data.length} products for provider ${idProvider}`);
+
+        return data.map(mapBackendProductToFrontend);
+    } catch (error) {
+        console.error(`Error fetching products for provider ${idProvider}:`, error);
+        return [];
+    }
+}

@@ -12,7 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Objects;
 
 /**
  * Gateway filter pour valider les JWT tokens
@@ -93,9 +95,7 @@ public class JwtAuthenticationGatewayFilterFactory
         }
     }
 
-    /**
-     * Handle errors
-     */
+    
     private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
@@ -104,8 +104,10 @@ public class JwtAuthenticationGatewayFilterFactory
         String errorMessage = String.format("{\"error\":\"%s\",\"message\":\"%s\"}", 
                 status.getReasonPhrase(), message);
         
-        return response.writeWith(Mono.just(response.bufferFactory().wrap(errorMessage.getBytes())));
+        byte[] bytes = Objects.requireNonNull(errorMessage.getBytes(StandardCharsets.UTF_8));
+        return response.writeWith(Objects.requireNonNull(Mono.just(response.bufferFactory().wrap(bytes))));
     }
+
 
     @Data
     public static class Config {

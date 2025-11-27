@@ -115,7 +115,7 @@ public class UserService {
     public User createUser(String keycloakId, String username, String email, String firstName, String lastName) {
         log.info("Creating new user with Keycloak ID: {}", keycloakId);
 
-        if (userRepository.findById(keycloakId).isPresent()) {
+        if (keycloakId != null && userRepository.findById(keycloakId).isPresent()) {
             throw new UserAlreadyExistsException("User already exists with id: " + keycloakId);
         }
 
@@ -127,7 +127,12 @@ public class UserService {
                 .lastName(lastName)
                 .build();
 
+
+        if (user == null) {
+            throw new RuntimeException("Failed to save user with id: " + keycloakId);
+        }
         User savedUser = userRepository.save(user);
+        
         log.info("User created successfully: {}", keycloakId);
 
         // Publish user created event
@@ -143,6 +148,9 @@ public class UserService {
     @Transactional
     public User getOrCreateUser(String keycloakId, String username, String email, String firstName, String lastName) {
         log.debug("Getting or creating user with Keycloak ID: {}", keycloakId);
+        if (keycloakId == null) {
+            throw new IllegalArgumentException("Keycloak ID cannot be null");
+        }
         Optional<User> existingUser = userRepository.findById(keycloakId);
         if (existingUser.isPresent()) {
             return existingUser.get();

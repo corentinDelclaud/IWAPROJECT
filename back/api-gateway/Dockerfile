@@ -8,6 +8,7 @@ COPY ./pom.xml ./pom.xml
 COPY ./api-gateway ./api-gateway
 COPY ./auth-service ./auth-service
 COPY ./user-microservice ./user-microservice
+COPY ./stripe-service ./stripe-service
 # Build only the api-gateway module and its dependencies, skip tests
 RUN mvn -q -e -DskipTests -pl api-gateway -am clean package
 

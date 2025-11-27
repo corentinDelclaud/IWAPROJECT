@@ -201,11 +201,9 @@ export default function MarketplaceScreen() {
                                 console.warn('Attempt to open product page but item.id is missing', item);
                                 return;
                             }
-                            router.push({
-                                pathname: '/product/[id]',
-                                params: { id: String(item.id) },
-                            });
+                            router.push(`/product/${item.id}`);
                         }}
+
                     />
                 )}
             />
