@@ -87,6 +87,14 @@ public class UserService {
         User savedUser = userRepository.save(user);
         log.info("Profile updated successfully for user: {}", userId);
 
+        // Send log to Kafka
+        if (logProducer != null) {
+            logProducer.sendLog("INFO", 
+                String.format("User profile updated - ID: %s, Username: %s", 
+                    userId, savedUser.getUsername()),
+                null, userId, null, null, null);
+        }
+
         // Publish user updated event
         publishUserEvent(savedUser, "USER_UPDATED");
 
@@ -105,6 +113,14 @@ public class UserService {
 
         user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
+        
+        // Send log to Kafka
+        if (logProducer != null) {
+            logProducer.sendLog("WARN", 
+                String.format("User profile deleted - ID: %s, Username: %s", 
+                    userId, user.getUsername()),
+                null, userId, null, null, null);
+        }
         
         // Publish user deleted event
         publishUserEvent(user, "USER_DELETED");
@@ -138,6 +154,19 @@ public class UserService {
         User savedUser = userRepository.save(user);
         
         log.info("User created successfully: {}", keycloakId);
+
+        // Send log to Kafka
+        log.info("LogProducer is: {}", logProducer != null ? "AVAILABLE" : "NULL");
+        if (logProducer != null) {
+            log.info("Attempting to send log to Kafka for user creation");
+            logProducer.sendLog("INFO", 
+                String.format("New user created - ID: %s, Username: %s, Email: %s", 
+                    keycloakId, username, email),
+                null, keycloakId, null, null, null);
+            log.info("Log sent to Kafka successfully");
+        } else {
+            log.warn("LogProducer is NULL, cannot send log to Kafka");
+        }
 
         // Publish user created event
         publishUserEvent(savedUser, "USER_CREATED");
@@ -250,8 +279,6 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public UserStatsDTO getUserStats() {
-        log.info("Fetching user statistics");
-        log.info("LogProducer is: {}", logProducer != null ? "AVAILABLE" : "NULL");
         
         long totalUsers = userRepository.countByDeletedAtIsNull();
         long deletedUsers = userRepository.countByDeletedAtIsNotNull();
@@ -260,13 +287,11 @@ public class UserService {
         
         // Send log to Kafka
         if (logProducer != null) {
-            log.info("Sending log to Kafka...");
             logProducer.sendLog("INFO", 
                 String.format("User statistics requested - Total: %d, Deleted: %d, Recent: %d", 
                     totalUsers, deletedUsers, recentUsers));
-            log.info("Log sent to Kafka successfully");
         } else {
-            log.warn("LogProducer is null - cannot send log to Kafka");
+            log.warn("LogProducer is not available, skipping log sending");
         }
         
         return UserStatsDTO.builder()
