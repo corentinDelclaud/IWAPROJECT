@@ -9,6 +9,7 @@ import iwaproject.user_microservice.exception.UserAlreadyExistsException;
 import iwaproject.user_microservice.exception.UserNotFoundException;
 import iwaproject.user_microservice.kafka.event.UserEvent;
 import iwaproject.user_microservice.kafka.producer.UserEventProducer;
+import iwaproject.user_microservice.kafka.producer.LogProducer;
 import iwaproject.user_microservice.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,9 @@ public class UserService {
     
     @Autowired(required = false)
     private UserEventProducer userEventProducer;
+    
+    @Autowired(required = false)
+    private LogProducer logProducer;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -247,10 +251,23 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserStatsDTO getUserStats() {
         log.info("Fetching user statistics");
+        log.info("LogProducer is: {}", logProducer != null ? "AVAILABLE" : "NULL");
+        
         long totalUsers = userRepository.countByDeletedAtIsNull();
         long deletedUsers = userRepository.countByDeletedAtIsNotNull();
         long recentUsers = userRepository.countByCreatedAtAfterAndDeletedAtIsNull(
                 LocalDateTime.now().minusDays(30));
+        
+        // Send log to Kafka
+        if (logProducer != null) {
+            log.info("Sending log to Kafka...");
+            logProducer.sendLog("INFO", 
+                String.format("User statistics requested - Total: %d, Deleted: %d, Recent: %d", 
+                    totalUsers, deletedUsers, recentUsers));
+            log.info("Log sent to Kafka successfully");
+        } else {
+            log.warn("LogProducer is null - cannot send log to Kafka");
+        }
         
         return UserStatsDTO.builder()
                 .totalActiveUsers(totalUsers)

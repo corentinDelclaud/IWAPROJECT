@@ -1,6 +1,7 @@
 package iwaproject.user_microservice.config;
 
 import iwaproject.user_microservice.kafka.event.UserEvent;
+import iwaproject.user_microservice.kafka.model.LogMessage;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,10 +17,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka configuration for producing user events
+ * Kafka configuration for producing user events and log messages
  */
 @Configuration
-@SuppressWarnings("null")
 @ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class KafkaProducerConfig {
 
@@ -56,6 +56,22 @@ public class KafkaProducerConfig {
     @Bean
     public KafkaTemplate<String, UserEvent> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactoryUserEvent());
+    }
+
+    /**
+     * Producer factory for LogMessage
+     */
+    @Bean
+    public ProducerFactory<String, LogMessage> producerFactoryLog() {
+        return new DefaultKafkaProducerFactory<>(producerConfigs());
+    }
+
+    /**
+     * Kafka template for sending log messages
+     */
+    @Bean
+    public KafkaTemplate<String, LogMessage> kafkaTemplateLog() {
+        return new KafkaTemplate<>(producerFactoryLog());
     }
 }
 
