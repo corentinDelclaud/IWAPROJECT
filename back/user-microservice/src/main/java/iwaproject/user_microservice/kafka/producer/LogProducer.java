@@ -97,7 +97,8 @@ public class LogProducer {
                         if (ex != null) {
                             log.error("Failed to send log message to Kafka: {}", ex.getMessage());
                         } else {
-                            log.trace("Log message sent to Kafka topic: {}", logTopic);
+                            log.debug("Log message sent to Kafka topic '{}' at offset {}", 
+                                logTopic, result.getRecordMetadata().offset());
                         }
                     });
         } catch (Exception e) {

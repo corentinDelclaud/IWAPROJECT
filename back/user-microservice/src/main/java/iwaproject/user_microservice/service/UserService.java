@@ -156,16 +156,11 @@ public class UserService {
         log.info("User created successfully: {}", keycloakId);
 
         // Send log to Kafka
-        log.info("LogProducer is: {}", logProducer != null ? "AVAILABLE" : "NULL");
         if (logProducer != null) {
-            log.info("Attempting to send log to Kafka for user creation");
             logProducer.sendLog("INFO", 
                 String.format("New user created - ID: %s, Username: %s, Email: %s", 
                     keycloakId, username, email),
                 null, keycloakId, null, null, null);
-            log.info("Log sent to Kafka successfully");
-        } else {
-            log.warn("LogProducer is NULL, cannot send log to Kafka");
         }
 
         // Publish user created event
