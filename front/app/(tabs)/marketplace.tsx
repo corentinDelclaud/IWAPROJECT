@@ -205,22 +205,39 @@ export default function MarketplaceScreen() {
         return () => { mounted = false };
     }, [selectedGame, selectedCategory]);
 
-    const games = useMemo(() => [
-        { id: "all", name: t('games.all') || "All", icon: "🎮" },
-        { id: "LEAGUE_OF_LEGENDS", name: t('games.league_of_legends') || "League of Legends", icon: "⚔️" },
-        { id: "TEAMFIGHT_TACTICS", name: t('games.teamfight_tactics') || "Teamfight Tactics", icon: "🛡️" },
-        { id: "ROCKET_LEAGUE", name: t('games.rocket_league') || "Rocket League", icon: "🚗" },
-        { id: "VALORANT", name: t('games.valorant') || "Valorant", icon: "🎯" },
-        { id: "OTHER", name: t('games.other') || "Other", icon: "🔰" },
-    ], [t]);
+    const GameDisplayMap: Record<string, string> = {
+        all: t('games.all') || "All",
+        LEAGUE_OF_LEGENDS: t('games.lol') || "League of Legends",
+        TEAMFIGHT_TACTICS: t('games.tft') || "Teamfight Tactics",
+        ROCKET_LEAGUE: t('games.rl') || "Rocket League",
+        VALORANT: t('games.valorant') || "Valorant",
+        OTHER: t('games.other') || "Other",
+    };
 
-    const categories = useMemo(() => [
-        { id: "all", name: t('categories.all') || "All" },
-        { id: "BOOST", name: t('categories.boost') || "Boost" },
-        { id: "COACHING", name: t('categories.coaching') || "Coaching" },
-        { id: "ACCOUNT_RESALING", name: t('categories.account_resaling') || "Account Resaling" },
-        { id: "OTHER", name: t('categories.other') || "Other" },
-    ], [t]);
+    const games = [
+        { id: "all", name: GameDisplayMap.all, icon: "🎮" },
+        { id: "LEAGUE_OF_LEGENDS", name: GameDisplayMap.LEAGUE_OF_LEGENDS, icon: "⚔️" },
+        { id: "TEAMFIGHT_TACTICS", name: GameDisplayMap.TEAMFIGHT_TACTICS, icon: "🛡️" },
+        { id: "ROCKET_LEAGUE", name: GameDisplayMap.ROCKET_LEAGUE, icon: "🚗" },
+        { id: "VALORANT", name: GameDisplayMap.VALORANT, icon: "🎯" },
+        { id: "OTHER", name: GameDisplayMap.OTHER, icon: "🔰" },
+    ];
+
+    const CategoryDisplayMap: Record<string, string> = {
+        all: t('categories.all') || "All",
+        BOOST: t('categories.boost') || "Boost",
+        COACHING: t('categories.coaching') || "Coaching",
+        ACCOUNT_RESALING: t('categories.account') || "Account Resaling",
+        OTHER: t('categories.other') || "Other",
+    };
+
+    const categories = [
+        { id: "all", name: CategoryDisplayMap.all },
+        { id: "BOOST", name: CategoryDisplayMap.BOOST },
+        { id: "COACHING", name: CategoryDisplayMap.COACHING },
+        { id: "ACCOUNT_RESALING", name: CategoryDisplayMap.ACCOUNT_RESALING },
+        { id: "OTHER", name: CategoryDisplayMap.OTHER },
+    ];
 
     const filteredServices = useMemo(() => {
         if (!debouncedSearchTerm.trim()) return products;
