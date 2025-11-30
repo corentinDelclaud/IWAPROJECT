@@ -2,6 +2,11 @@
 // Ce service communique avec le backend via l'API Gateway (port 8090)
 // Détection automatique de la plateforme
 import { Platform } from 'react-native';
+import { MOCK_PRODUCTS } from './mockProductData';
+import { getGameImage } from '@/utils/gameImages';
+
+// ⚠️ MODE TEST: Mettre à true pour utiliser les données mockées, false pour utiliser le backend réel
+const USE_MOCK_DATA = true;
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
@@ -25,7 +30,7 @@ export interface Product {
     rating: number;
     reviews: number;
     delivery: string;
-    image: string;
+    image: any;  // Peut être une string (URI) ou un require() local
     online: boolean;
     badges: string[];
     deliveryTime?: string;
@@ -75,7 +80,8 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
         rating: backendProduct.rating || 4.5,
         reviews: 127,  // Valeur par défaut - à récupérer du backend plus tard
         delivery: '24-48h',  // Temps de livraison par défaut
-        image: backendProduct.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image',
+        // Utiliser l'image du jeu si pas d'imageUrl fournie
+        image: backendProduct.imageUrl || getGameImage(backendProduct.game),
         online: backendProduct.isAvailable !== false, // Utiliser isAvailable du backend
         badges: ['Vérifié', 'Rapide'], // Badges par défaut
         deliveryTime: '24-48h', // Temps de livraison par défaut
@@ -92,6 +98,15 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
  */
 export async function fetchProducts(): Promise<Product[]> {
     try {
+        // Mode test: utiliser les données mockées
+        if (USE_MOCK_DATA) {
+            console.log('🧪 Using MOCK data - fetching all products');
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simuler latence réseau
+            console.log(`Received ${MOCK_PRODUCTS.length} mock products`);
+            return MOCK_PRODUCTS.map(mapBackendProductToFrontend);
+        }
+
+        // Mode production: appel API réel
         console.log('Fetching products from:', API_BASE_URL);
         const response = await fetch(API_BASE_URL);
 
@@ -118,6 +133,20 @@ export async function fetchProducts(): Promise<Product[]> {
  */
 export async function fetchProductById(id: number): Promise<Product | null> {
     try {
+        // Mode test: utiliser les données mockées
+        if (USE_MOCK_DATA) {
+            console.log(`🧪 Using MOCK data - fetching product ${id}`);
+            await new Promise(resolve => setTimeout(resolve, 200)); // Simuler latence réseau
+            const mockProduct = MOCK_PRODUCTS.find(p => p.idService === id);
+            if (!mockProduct) {
+                console.log(`Product ${id} not found in mock data`);
+                return null;
+            }
+            console.log(`✅ Found mock product ${id}:`, mockProduct);
+            return mapBackendProductToFrontend(mockProduct);
+        }
+
+        // Mode production: appel API réel
         const url = `${API_BASE_URL}/${id}`;
         console.log(`🔍 Fetching product ${id} from:`, url);
 
@@ -160,6 +189,49 @@ export async function fetchProductsByFilters(filters: {
     idProvider?: string;  // UUID du provider
 }): Promise<Product[]> {
     try {
+        // Mode test: filtrer les données mockées
+        if (USE_MOCK_DATA) {
+            console.log('🧪 Using MOCK data - filtering products with:', filters);
+            await new Promise(resolve => setTimeout(resolve, 250)); // Simuler latence réseau
+
+            let filteredProducts = [...MOCK_PRODUCTS];
+
+            // Filtrer par jeu
+            if (filters.game && filters.game !== 'all') {
+                filteredProducts = filteredProducts.filter(
+                    p => p.game.toUpperCase() === filters.game!.toUpperCase()
+                );
+            }
+
+            // Filtrer par type de service
+            if (filters.type && filters.type !== 'all') {
+                filteredProducts = filteredProducts.filter(
+                    p => p.serviceType.toUpperCase() === filters.type!.toUpperCase()
+                );
+            }
+
+            // Filtrer par prix min
+            if (filters.minPrice !== undefined) {
+                filteredProducts = filteredProducts.filter(p => p.price >= filters.minPrice!);
+            }
+
+            // Filtrer par prix max
+            if (filters.maxPrice !== undefined) {
+                filteredProducts = filteredProducts.filter(p => p.price <= filters.maxPrice!);
+            }
+
+            // Filtrer par provider
+            if (filters.idProvider) {
+                filteredProducts = filteredProducts.filter(
+                    p => p.idProvider === filters.idProvider
+                );
+            }
+
+            console.log(`Found ${filteredProducts.length} filtered mock products`);
+            return filteredProducts.map(mapBackendProductToFrontend);
+        }
+
+        // Mode production: appel API réel
         // Construction des paramètres de requête
         const params = new URLSearchParams();
 
@@ -206,6 +278,26 @@ export async function fetchProductsByFilters(filters: {
  */
 export async function createProduct(product: Omit<BackendProduct, 'idService'>): Promise<Product | null> {
     try {
+        // Mode test: simuler la création
+        if (USE_MOCK_DATA) {
+            console.log('🧪 Using MOCK data - creating product:', product);
+            await new Promise(resolve => setTimeout(resolve, 400)); // Simuler latence réseau
+
+            // Générer un nouvel ID
+            const newId = Math.max(...MOCK_PRODUCTS.map(p => p.idService)) + 1;
+            const newProduct: BackendProduct = {
+                ...product,
+                idService: newId,
+            };
+
+            // Ajouter au tableau mock (seulement en mémoire pendant la session)
+            MOCK_PRODUCTS.push(newProduct);
+            console.log(`✅ Mock product created with id ${newId}`);
+
+            return mapBackendProductToFrontend(newProduct);
+        }
+
+        // Mode production: appel API réel
         const response = await fetch(API_BASE_URL, {
             method: 'POST',
             headers: {
@@ -233,6 +325,24 @@ export async function createProduct(product: Omit<BackendProduct, 'idService'>):
  */
 export async function deleteProduct(id: number): Promise<boolean> {
     try {
+        // Mode test: simuler la suppression
+        if (USE_MOCK_DATA) {
+            console.log(`🧪 Using MOCK data - deleting product ${id}`);
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simuler latence réseau
+
+            const index = MOCK_PRODUCTS.findIndex(p => p.idService === id);
+            if (index === -1) {
+                console.log(`Product ${id} not found in mock data`);
+                return false;
+            }
+
+            // Supprimer du tableau mock (seulement en mémoire pendant la session)
+            MOCK_PRODUCTS.splice(index, 1);
+            console.log(`✅ Mock product ${id} deleted`);
+            return true;
+        }
+
+        // Mode production: appel API réel
         const url = `${API_BASE_URL}/${id}`;
         const response = await fetch(url, {
             method: 'DELETE',

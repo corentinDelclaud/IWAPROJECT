@@ -48,9 +48,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="myServices"
         options={{
-          title: t('common:nav.orders'),
+          title: t('common:nav.myServices'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'reader' : 'reader-outline'} size={22} color={color} />
           ),
