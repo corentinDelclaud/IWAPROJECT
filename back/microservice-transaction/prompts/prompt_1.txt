@@ -1,0 +1,29 @@
+j'ai la db connecté, j'arrive à lancer le projet. 
+vu qu'on est en mode dev, on va etre sur une strat drop all and create pour la db. 
+pour le tools get library, utilise le topic JPA. 
+comprends bien le context. 
+J'avais un premier exemple d'application mais c'était juste pour le teste. Plusieurs choses sont obsolètes: l'entité employee n'était que de test, je vais la supprimer. par contre transaction, transaction state, product et conversation c'est important. product n'est pas encore défini mais il sera de la forme : 
+CREATE TABLE IF NOT EXISTS service (
+        id_service SERIAL PRIMARY KEY,
+        game VARCHAR(50) NOT NULL,
+        service_type VARCHAR(50) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        is_unique BOOLEAN DEFAULT FALSE,
+        is_available BOOLEAN DEFAULT TRUE,
+        id_provider INT NOT NULL
+    );
+. la table transaction n'est pas à jour, voici sa decription dans le MCD (elle contient un peu de redondance sur les id mais c'est normal) : 
+transactionState: enum
+requestValidationDate : date (correspond au passage à REQUEST_ACCEPTED)
+finishDate : date (correspond au passage à FINISHED_AND_PAID ou CANCELED)
+idConversation : int ()
+idService : int (depuis la requete de création)
+idClient : int (qui a emis la demande de create)
+idProvider : int (qu'on va recup depuis le product)
+
+VOICI LA FIN DU CONTEXTE. 
+
+Ta tâche : en suivant tout le contexte et la description du microservice, tu vas me donner les nouveaux fichiers à crée, leurs codes afin d'avoir toutes les entity cité et les repository, ainsi que le microservice entier autour des transactions, donc précisement le controller transaction (pas le reste). toute la logique métier autour du changement d'état d'une transaction comme cité. chaque entité contiendra un remplissage auto de sa table avec ~ 5/10 lignes par table (c'est des exemple pour dev). normalement j'aurai la doc open api, j'aurai les routes autour de la transaction. 
+
+donne moi tout ça. si ya des touch ou des rm donne les moi dès le début. 

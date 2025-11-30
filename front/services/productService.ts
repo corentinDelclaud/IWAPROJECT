@@ -2,6 +2,7 @@
 // Ce service communique avec le backend via l'API Gateway (port 8090)
 // Détection automatique de la plateforme
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
@@ -200,16 +201,25 @@ export async function fetchProductsByFilters(filters: {
 }
 
 /**
- * Créer un nouveau produit
+ * Créer un nouveau produit (nécessite authentification)
  * @param product - Les données du produit à créer
  * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
  */
 export async function createProduct(product: Omit<BackendProduct, 'idService'>): Promise<Product | null> {
     try {
+        // Récupérer le token JWT
+        const token = await AsyncStorage.getItem('@auth/access_token');
+        
+        if (!token) {
+            console.error('No access token available for creating product');
+            throw new Error('Authentication required');
+        }
+
         const response = await fetch(API_BASE_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(product),
         });
@@ -227,15 +237,26 @@ export async function createProduct(product: Omit<BackendProduct, 'idService'>):
 }
 
 /**
- * Supprimer un nouveau produit
- * @param product - Les données du produit à créer
- * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ * Supprimer un produit (nécessite authentification)
+ * @param id - L'ID du produit à supprimer
+ * @returns Promise<boolean> - true si supprimé, false sinon
  */
 export async function deleteProduct(id: number): Promise<boolean> {
     try {
+        // Récupérer le token JWT
+        const token = await AsyncStorage.getItem('@auth/access_token');
+        
+        if (!token) {
+            console.error('No access token available for deleting product');
+            throw new Error('Authentication required');
+        }
+
         const url = `${API_BASE_URL}/${id}`;
         const response = await fetch(url, {
             method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
         });
 
         if (!response.ok) {

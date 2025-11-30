@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction API Tester</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .route { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        select, input, button { margin: 5px; padding: 8px; }
+        input[type="number"] { width: 80px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        .add-btn { background: #28a745; font-size: 12px; padding: 5px 10px; }
+        .add-btn:hover { background: #218838; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Transaction API Tester</h1>
+
+    <div class="route">
+        <h3>POST /transaction - Créer transaction</h3>
+        userId: <input type="number" id="post-userId-input"> <button class="add-btn" onclick="addOption('post-userId')">+</button>
+        <select id="post-userId"></select><br>
+        serviceId: <input type="number" id="post-serviceId-input"> <button class="add-btn" onclick="addOption('post-serviceId')">+</button>
+        <select id="post-serviceId"></select><br>
+        directRequest: <select id="post-direct"><option>true</option><option>false</option></select>
+        <button onclick="createTransaction()">Lancer</button>
+        <pre id="post-result"></pre>
+    </div>
+
+    <div class="route">
+        <h3>GET /transaction/{id} - Récupérer transaction</h3>
+        id: <input type="number" id="get-id-input"> <button class="add-btn" onclick="addOption('get-id')">+</button>
+        <select id="get-id"></select>
+        <button onclick="getTransaction()">Lancer</button>
+        <pre id="get-result"></pre>
+    </div>
+
+    <div class="route">
+        <h3>PUT /transaction/{id}/state - Changer état</h3>
+        id: <input type="number" id="put-id-input"> <button class="add-btn" onclick="addOption('put-id')">+</button>
+        <select id="put-id"></select><br>
+        userId: <input type="number" id="put-userId-input"> <button class="add-btn" onclick="addOption('put-userId')">+</button>
+        <select id="put-userId"></select><br>
+        newState: <select id="put-state">
+            <option>REQUESTED</option><option>REQUEST_ACCEPTED</option><option>PREPAID</option>
+            <option>CLIENT_CONFIRMED</option><option>PROVIDER_CONFIRMED</option>
+            <option>DOUBLE_CONFIRMED</option><option>FINISHED_AND_PAYED</option><option>CANCELED</option>
+        </select>
+        <button onclick="updateState()">Lancer</button>
+        <pre id="put-result"></pre>
+    </div>
+
+    <script>
+        const BASE = 'http://localhost:8081/transaction';
+
+        function addOption(selectId) {
+            const input = document.getElementById(selectId + '-input');
+            const select = document.getElementById(selectId);
+            const value = input.value.trim();
+            if (value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+                select.value = value;
+                input.value = '';
+            }
+        }
+
+        async function createTransaction() {
+            const result = document.getElementById('post-result');
+            try {
+                const res = await fetch(BASE, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        userId: parseInt(document.getElementById('post-userId').value),
+                        serviceId: parseInt(document.getElementById('post-serviceId').value),
+                        directRequest: document.getElementById('post-direct').value === 'true'
+                    })
+                });
+                result.textContent = `Status: ${res.status}\n` + JSON.stringify(await res.json(), null, 2);
+                result.className = res.ok ? 'success' : 'error';
+            } catch (e) {
+                result.textContent = 'Error: ' + e.message;
+                result.className = 'error';
+            }
+        }
+
+        async function getTransaction() {
+            const result = document.getElementById('get-result');
+            const id = document.getElementById('get-id').value;
+            if (!id) { result.textContent = 'Sélectionne un id'; return; }
+            try {
+                const res = await fetch(`${BASE}/${id}`);
+                result.textContent = `Status: ${res.status}\n` + JSON.stringify(await res.json(), null, 2);
+                result.className = res.ok ? 'success' : 'error';
+            } catch (e) {
+                result.textContent = 'Error: ' + e.message;
+                result.className = 'error';
+            }
+        }
+
+        async function updateState() {
+            const result = document.getElementById('put-result');
+            const id = document.getElementById('put-id').value;
+            if (!id) { result.textContent = 'Sélectionne un id'; return; }
+            try {
+                const res = await fetch(`${BASE}/${id}/state`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        userId: parseInt(document.getElementById('put-userId').value),
+                        newState: document.getElementById('put-state').value
+                    })
+                });
+                result.textContent = `Status: ${res.status}\n` + JSON.stringify(await res.json(), null, 2);
+                result.className = res.ok ? 'success' : 'error';
+            } catch (e) {
+                result.textContent = 'Error: ' + e.message;
+                result.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>
