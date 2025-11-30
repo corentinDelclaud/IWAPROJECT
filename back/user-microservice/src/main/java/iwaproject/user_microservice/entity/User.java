@@ -43,6 +43,9 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "stripe_account_id")
+    private String stripeAccountId;
+
     // Helper method to check if user is deleted (soft delete)
     public boolean isDeleted() {
         return deletedAt != null;

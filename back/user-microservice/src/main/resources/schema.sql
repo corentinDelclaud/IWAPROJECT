@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    stripe_account_id VARCHAR(255)
 );
 
 -- Create indexes for better performance
