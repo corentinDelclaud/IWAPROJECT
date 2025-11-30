@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class TransactionService {
@@ -20,16 +21,19 @@ public class TransactionService {
     
     private final TransactionRepository transactionRepository;
     private final CatalogServiceClient catalogServiceClient;
+    private final TransactionSseService sseService;
     
     public TransactionService(TransactionRepository transactionRepository,
-                             CatalogServiceClient catalogServiceClient) {
+                             CatalogServiceClient catalogServiceClient,
+                             TransactionSseService sseService) {
         this.transactionRepository = transactionRepository;
         this.catalogServiceClient = catalogServiceClient;
+        this.sseService = sseService;
     }
     
     @Transactional
     public Transaction createTransaction(CreateTransactionRequest request, String userIdFromHeader) {
-        String userId = validateUserId(userIdFromHeader);  // Gardé comme String
+        String userId = validateUserId(userIdFromHeader);
         
         log.info("Creating transaction for userId={} (from JWT), serviceId={}", 
                 userId, request.serviceId());
@@ -76,6 +80,10 @@ public class TransactionService {
         Transaction saved = transactionRepository.save(transaction);
         log.info("Transaction created: id={}, state={}, provider={}", 
                 saved.getId(), initialState, product.idProvider());
+        
+        // Notifier via SSE
+        sseService.notifyTransactionUpdate(saved);
+        
         return saved;
     }
     
@@ -85,9 +93,17 @@ public class TransactionService {
             .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
     }
     
+    /**
+     * Récupère toutes les transactions d'un utilisateur (en tant que client ou provider)
+     */
+    public List<Transaction> getTransactionsByUser(String userId) {
+        log.debug("Fetching transactions for user={}", userId);
+        return transactionRepository.findByIdClientOrIdProviderOrderByCreationDateDesc(userId, userId);
+    }
+    
     @Transactional
     public Transaction updateState(Integer transactionId, UpdateStateRequest request, String userIdFromHeader) {
-        String userId = validateUserId(userIdFromHeader);  // Gardé comme String
+        String userId = validateUserId(userIdFromHeader);
         
         log.info("Updating transaction {} state to {} by user {} (from JWT)", 
                 transactionId, request.newState(), userId);
@@ -109,6 +125,10 @@ public class TransactionService {
         
         Transaction saved = transactionRepository.save(transaction);
         log.info("Transaction {} state changed: {} -> {}", transactionId, currentState, saved.getTransactionState());
+        
+        // Notifier via SSE
+        sseService.notifyTransactionUpdate(saved);
+        
         return saved;
     }
     
@@ -119,11 +139,11 @@ public class TransactionService {
         }
         
         log.debug("#debuglog Validated user ID from JWT header: {}", userIdHeader);
-        return userIdHeader;  // Retourne directement le String (UUID)
+        return userIdHeader;
     }
     
     private void validateStateTransition(Transaction transaction, TransitionState current, 
-                                        TransitionState target, String userId) {  // String au lieu de Integer
+                                        TransitionState target, String userId) {
         log.debug("Validating state transition: {} -> {} for user {}", current, target, userId);
         
         if (current == TransitionState.CANCELED || current == TransitionState.FINISHED_AND_PAYED) {
@@ -146,7 +166,6 @@ public class TransactionService {
             case PREPAID -> {
                 if (current != TransitionState.REQUEST_ACCEPTED) 
                     throw new IllegalStateException("Can only prepay from REQUEST_ACCEPTED");
-                // Supprimé le check userId == 999 car UUID maintenant
                 log.warn("#debuglog PREPAID state set - payment validation should be handled by external service");
             }
             case CLIENT_CONFIRMED -> {
@@ -177,7 +196,7 @@ public class TransactionService {
         }
     }
     
-    private void handleConfirmation(Transaction transaction, String userId) {  // String au lieu de Integer
+    private void handleConfirmation(Transaction transaction, String userId) {
         boolean isClient = userId.equals(transaction.getIdClient());
         boolean isProvider = userId.equals(transaction.getIdProvider());
         

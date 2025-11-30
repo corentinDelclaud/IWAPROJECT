@@ -26,13 +26,13 @@ public class Transaction {
     private Integer idService;
     
     @Column(name = "id_client", nullable = false)
-    private String idClient;  // UUID au lieu de Integer
+    private String idClient;
     
-    @Column(name = "id_provider", nullable = false)
-    private String idProvider;  // UUID au lieu de Integer
+    @Column(name = "id_provider")
+    private String idProvider;
     
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "creation_date", nullable = false)
+    private LocalDateTime creationDate;
     
     protected Transaction() {}
     
@@ -41,7 +41,7 @@ public class Transaction {
         this.idService = idService;
         this.idClient = idClient;
         this.idProvider = idProvider;
-        this.createdAt = LocalDateTime.now();
+        this.creationDate = LocalDateTime.now();
     }
     
     // Getters
@@ -52,7 +52,7 @@ public class Transaction {
     public Integer getIdService() { return idService; }
     public String getIdClient() { return idClient; }
     public String getIdProvider() { return idProvider; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getCreationDate() { return creationDate; }
     
     // Setters
     public void setTransactionState(TransitionState state) { this.transactionState = state; }

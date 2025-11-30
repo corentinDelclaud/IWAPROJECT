@@ -97,7 +97,6 @@ public class GatewayConfig {
                         .uri(userServiceUrl))
                 
                 // ==================== CATALOG/PRODUCT SERVICE ROUTES ====================
-                // AJOUTÉ ICI - Routes publiques pour le catalog
                 .route("catalog-get-all", r -> r
                         .order(1)
                         .path("/api/products")
@@ -134,7 +133,6 @@ public class GatewayConfig {
                         .and().method("GET")
                         .uri(productServiceUrl))
                 
-                // Routes protégées par JWT pour la gestion des produits
                 .route("catalog-create", r -> r
                         .order(7)
                         .path("/api/products")
@@ -174,6 +172,15 @@ public class GatewayConfig {
                         .uri(userServiceUrl))
                 
                 // ==================== TRANSACTION SERVICE ROUTES ====================
+                .route("transaction-my", r -> r
+                        .order(0)
+                        .path("/api/transactions/my")
+                        .and().method("GET")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                .rewritePath("/api/transactions/my", "/transaction/my"))
+                        .uri(transactionServiceUrl))
+                
                 .route("transaction-create", r -> r
                         .order(1)
                         .path("/api/transactions")
@@ -195,14 +202,31 @@ public class GatewayConfig {
                 .route("transaction-update-state", r -> r
                         .order(3)
                         .path("/api/transactions/{id}/state")
-                        .and().method("PUT")
+                        .and().method("PUT", "PATCH")  // Accepter les deux méthodes
                         .filters(f -> f
                                 .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
                                 .rewritePath("/api/transactions/(?<segment>.*)", "/transaction/${segment}"))
                         .uri(transactionServiceUrl))
                 
-                .route("transaction-swagger", r -> r
+                // SSE endpoint pour les transactions
+                .route("transaction-sse-single", r -> r
                         .order(4)
+                        .path("/api/transactions/sse/{transactionId}")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                .rewritePath("/api/transactions/sse/(?<segment>.*)", "/transaction/sse/${segment}"))
+                        .uri(transactionServiceUrl))
+                
+                .route("transaction-sse-user", r -> r
+                        .order(5)
+                        .path("/api/transactions/sse/user")
+                        .filters(f -> f
+                                .filter(jwtAuthFilter.apply(new JwtAuthenticationGatewayFilterFactory.Config()))
+                                .rewritePath("/api/transactions/sse/user", "/transaction/sse/user"))
+                        .uri(transactionServiceUrl))
+                
+                .route("transaction-swagger", r -> r
+                        .order(6)
                         .path("/api/transactions/swagger-ui/**", "/api/transactions/v3/api-docs/**")
                         .filters(f -> f.rewritePath("/api/transactions/(?<segment>.*)", "/${segment}"))
                         .uri(transactionServiceUrl))
