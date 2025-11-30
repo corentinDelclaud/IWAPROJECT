@@ -44,7 +44,7 @@ export default function HomeScreen() {
                         <ThemedText style={{ color: '#9CA3AF' }}>{t('common:home.messaging.subtitle')}</ThemedText>
                     </ThemedView>
                 </Link>
-                <Link href="/(tabs)/orders" style={{ display: 'flex', width: '100%' }}>
+                <Link href="/(tabs)/myServices" style={{ display: 'flex', width: '100%' }}>
                     <ThemedView style={{ width: '100%', backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.3)', borderWidth: 1, padding: 16, borderRadius: 12 }}>
                         <ThemedText style={{ color: '#86EFAC', fontWeight: '700' }}>{t('common:home.orders.title')}</ThemedText>
                         <ThemedText style={{ color: '#9CA3AF' }}>{t('common:home.orders.subtitle')}</ThemedText>
