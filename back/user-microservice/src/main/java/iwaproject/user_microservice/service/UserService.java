@@ -266,6 +266,7 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
+                .stripeAccountId(user.getStripeAccountId())
                 .lastName(user.getLastName())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

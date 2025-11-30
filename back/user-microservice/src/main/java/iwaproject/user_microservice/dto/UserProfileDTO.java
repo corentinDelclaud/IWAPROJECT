@@ -20,6 +20,8 @@ public class UserProfileDTO {
     private String email;
     private String firstName;
     private String lastName;
+    // Stripe connected account id (if created)
+    private String stripeAccountId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

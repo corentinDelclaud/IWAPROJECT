@@ -73,6 +73,8 @@ services:
     url: http://service-catalog:8083
   keycloak:
     url: http://localhost:9090
+    stripe:
+      url: http://stripe-service:8090
 
 # Configuration du monitoring
 management:

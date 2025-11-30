@@ -242,6 +242,7 @@ services:
       SERVICES_USER_URL: http://user-microservice:8081
       SERVICES_CATALOG_URL: http://service-catalog:8083
       SERVICES_KEYCLOAK_URL: http://keycloak:8085
+      SERVICES_STRIPE_URL: http://stripe-service:8090
     ports:
       - "8080:8080"
     networks:

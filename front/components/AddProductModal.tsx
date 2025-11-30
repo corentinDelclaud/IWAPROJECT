@@ -10,10 +10,12 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    Linking,
 } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createProduct } from '@/services/productService';
+import { apiService } from '@/services/api';
 
 interface AddProductModalProps {
     visible: boolean;
@@ -99,6 +101,80 @@ export default function AddProductModal({
         if (!validateForm()) return;
 
         try {
+                // Ensure the provider has an active Stripe connected account
+                try {
+                    const profile = await apiService.getUserProfile();
+                    const stripeAccountId = profile?.stripeAccountId;
+
+                    // Helper to open onboarding link
+                    const openOnboarding = async (accountId: string) => {
+                        try {
+                            const resp = await apiService.createStripeAccountLink(accountId);
+                            const url = resp?.url;
+                            if (url) {
+                                Linking.openURL(url);
+                            } else {
+                                Alert.alert('Erreur', "Impossible d'obtenir le lien d'onboarding Stripe.");
+                            }
+                        } catch (err) {
+                            console.error('Failed to create account link:', err);
+                            Alert.alert('Erreur', "Impossible de créer le lien d'onboarding Stripe.");
+                        }
+                    };
+
+                    if (!stripeAccountId) {
+                        // Offer to create a connected account and start onboarding
+                        Alert.alert(
+                            'Compte Stripe manquant',
+                            "Votre compte Stripe n'est pas encore connecté. Voulez-vous créer un compte lié et démarrer l'onboarding ?",
+                            [
+                                { text: 'Annuler', style: 'cancel' },
+                                {
+                                    text: "Créer et connecter",
+                                        onPress: async () => {
+                                            try {
+                                                if (!profile?.email) {
+                                                    Alert.alert('Erreur', "Adresse e-mail manquante pour créer le compte Stripe.");
+                                                    return;
+                                                }
+                                                const createResp = await apiService.createConnectAccount(profile.email);
+                                                const newAccountId = createResp?.accountId;
+                                                if (newAccountId) {
+                                                    await openOnboarding(newAccountId);
+                                                } else {
+                                                    Alert.alert('Erreur', "Impossible de créer le compte Stripe.");
+                                                }
+                                            } catch (err) {
+                                                console.error('Failed to create connect account:', err);
+                                                Alert.alert('Erreur', "Impossible de créer le compte Stripe. Réessayez plus tard.");
+                                            }
+                                        },
+                                },
+                            ]
+                        );
+                        return;
+                    }
+
+                    // Check account status from backend (proxy to stripe-service)
+                    const status = await apiService.getStripeAccountStatus(stripeAccountId);
+                    // Expect booleans payoutsEnabled, chargesEnabled, detailsSubmitted
+                    if (!status || !(status.payoutsEnabled && status.chargesEnabled && status.detailsSubmitted)) {
+                        Alert.alert(
+                            'Compte Stripe incomplet',
+                            "Votre compte Stripe n'est pas encore activé pour recevoir des paiements.",
+                            [
+                                { text: 'Annuler', style: 'cancel' },
+                                { text: "Terminer l'onboarding", onPress: () => openOnboarding(stripeAccountId) },
+                            ]
+                        );
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Failed to verify Stripe account status:', err);
+                    Alert.alert('Erreur', "Impossible de vérifier l'état de votre compte Stripe. Réessayez ultérieurement.");
+                    return;
+                }
+
             // Préparer les données au format attendu par le backend (CreateProductRequest)
             const productData = {
                 description: formData.description.trim(),

@@ -7,6 +7,8 @@ interface UserProfile {
   email: string;
   firstName: string;
   lastName: string;
+  // optional stripe connected account id returned by backend
+  stripeAccountId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -165,6 +167,28 @@ class ApiService {
 
   async getUserProfile(): Promise<UserProfile> {
     return this.makeRequest<UserProfile>(API_CONFIG.endpoints.profile);
+  }
+
+  async getStripeAccountStatus(accountId: string): Promise<any> {
+    if (!accountId) throw new Error('AccountId is required');
+    const endpoint = `/api/stripe/account-status/${encodeURIComponent(accountId)}`;
+    return this.makeRequest<any>(endpoint);
+  }
+
+  async createStripeAccountLink(accountId: string): Promise<{ url: string }> {
+    if (!accountId) throw new Error('AccountId is required');
+    return this.makeRequest<{ url: string }>(`/api/stripe/account-link`, {
+      method: 'POST',
+      body: JSON.stringify({ accountId }),
+    });
+  }
+
+  async createConnectAccount(email: string): Promise<{ accountId: string }> {
+    if (!email) throw new Error('Email is required');
+    return this.makeRequest<{ accountId: string }>(`/api/stripe/connect-account`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   }
 
   async getPublicProfile(userId: string): Promise<UserProfile> {
