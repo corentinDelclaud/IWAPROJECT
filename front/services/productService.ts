@@ -6,7 +6,7 @@ import { MOCK_PRODUCTS } from './mockProductData';
 import { getGameImage } from '@/utils/gameImages';
 
 // ⚠️ MODE TEST: Mettre à true pour utiliser les données mockées, false pour utiliser le backend réel
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const getBaseUrl = () => {
