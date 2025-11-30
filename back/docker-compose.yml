@@ -180,6 +180,8 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       KEYCLOAK_ISSUER_URI: http://${API_HOST:-localhost}:8085/realms/IWA_NextLevel
       KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
+      # URL used by the user-microservice to contact the stripe-service inside Docker
+      STRIPE_SERVICE_URL: http://stripe-service:8090
     ports:
       - "8081:8081"
     networks:
@@ -260,3 +262,28 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # Stripe Service - Payment integration
+  stripe-service:
+    build:
+      context: ./stripe-service
+      dockerfile: Dockerfile
+    image: iwa-stripe-service:latest
+    container_name: iwa-stripe-service
+    environment:
+      SERVER_PORT: 8090
+      SERVER_ADDRESS: 0.0.0.0
+      # Provide stripe keys via env when starting in production or local dev
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+    ports:
+      - "8090:8090"
+    networks:
+      - iwa-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8090/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
