@@ -35,12 +35,13 @@ export interface Product {
 // Interface des données reçues du backend
 interface BackendProduct {
     idService: number;
-    name: string;
     description: string;
-    price: number;
-    game: string;
-    serviceType: string;
+    price: number;  // Float dans le backend
+    game: string;   // Enum Game: VALORANT, LEAGUE_OF_LEGENDS, etc.
+    serviceType: string;  // Enum ServiceType: COACHING, BOOST, etc.
     idProvider: string;  // UUID du provider Keycloak
+    unique?: boolean;     // Optionnel, défaut: false
+    isAvailable?: boolean; // Optionnel, défaut: true
     providerName?: string;
     imageUrl?: string;
     rating?: number;
@@ -51,10 +52,22 @@ interface BackendProduct {
  * Ajoute des valeurs par défaut pour les champs manquants
  */
 function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
+    // Générer un titre à partir de la description ou des infos du service
+    const generateTitle = () => {
+        if (backendProduct.description) {
+            // Prendre les 60 premiers caractères de la description comme titre
+            const title = backendProduct.description.split('-')[0]?.trim() ||
+                         backendProduct.description.substring(0, 60).trim();
+            return title + (backendProduct.description.length > 60 ? '...' : '');
+        }
+        // Sinon, générer un titre basé sur le type de service et le jeu
+        return `${backendProduct.serviceType || 'Service'} ${backendProduct.game || ''}`.trim();
+    };
+
     return {
         id: backendProduct.idService,
-        title: backendProduct.name || backendProduct.description?.split('-')[0]?.trim() || 'Produit sans titre',
-        description: backendProduct.description,
+        title: generateTitle(),
+        description: backendProduct.description || 'Aucune description disponible',
         price: `${backendProduct.price}€`,  // Formatage du prix avec le symbole €
         game: backendProduct.game?.toLowerCase() || 'all',
         category: backendProduct.serviceType?.toLowerCase() || 'all',
@@ -63,7 +76,7 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
         reviews: 127,  // Valeur par défaut - à récupérer du backend plus tard
         delivery: '24-48h',  // Temps de livraison par défaut
         image: backendProduct.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image',
-        online: true, // Valeur par défaut
+        online: backendProduct.isAvailable !== false, // Utiliser isAvailable du backend
         badges: ['Vérifié', 'Rapide'], // Badges par défaut
         deliveryTime: '24-48h', // Temps de livraison par défaut
         stats: [

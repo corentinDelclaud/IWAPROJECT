@@ -6,6 +6,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchProductsByProvider, deleteProduct } from '@/services/productService';
 import { apiService } from '@/services/api';
+import AddProductModal from '@/components/AddProductModal';
 
 interface UserService {
     id: number;
@@ -27,10 +28,19 @@ export default function ServicesManagementScreen() {
     const [services, setServices] = useState<UserService[]>([]);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState<string | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
         initializeAndLoadServices();
     }, []);
+
+    useEffect(() => {
+        console.log('🔄 showAddModal changé:', showAddModal);
+    }, [showAddModal]);
+
+    useEffect(() => {
+        console.log('👤 userId changé:', userId);
+    }, [userId]);
 
     const initializeAndLoadServices = async () => {
         try {
@@ -103,37 +113,73 @@ export default function ServicesManagementScreen() {
         );
     };
 
-    if (loading) {
-        return (
-            <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ color: theme.text }}>Chargement...</Text>
-            </ThemedView>
-        );
-    }
-
     return (
         <ThemedView style={{ flex: 1 }}>
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            {/* En-tête fixe avec bouton d'ajout et tabs */}
+            <View style={{ padding: 16, paddingBottom: 8 }}>
+                {/* Bouton Ajouter un produit */}
+                <Pressable
+                    onPress={() => {
+                        console.log('📝 Bouton Ajouter un produit cliqué');
+                        console.log('📝 userId:', userId);
+                        console.log('📝 showAddModal avant:', showAddModal);
+                        setShowAddModal(true);
+                        console.log('📝 setShowAddModal(true) appelé');
+                    }}
+                    style={{
+                        backgroundColor: '#9333EA', // Violet vif pour meilleure visibilité
+                        padding: 16,
+                        borderRadius: 12,
+                        marginBottom: 12,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        shadowColor: '#9333EA',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                    }}
+                >
+                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>+ Ajouter un produit</Text>
+                </Pressable>
+
                 {/* Tabs */}
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                     {(['all', 'available', 'unavailable'] as const).map(tab => (
                         <Pressable
                             key={tab}
                             onPress={() => setActiveTab(tab)}
-                        style={{
-                            flex: 1,
-                            paddingVertical: 10,
-                            paddingHorizontal: 16,
-                            borderRadius: 8,
-                            backgroundColor: activeTab === tab ? theme.tint : theme.slateBg,
-                        }}
+                            style={{
+                                flex: 1,
+                                paddingVertical: 10,
+                                paddingHorizontal: 16,
+                                borderRadius: 10,
+                                borderWidth: 1,
+                                borderColor: activeTab === tab ? 'rgba(168,85,247,0.5)' : theme.slateBorder,
+                                backgroundColor: activeTab === tab ? 'rgba(147,51,234,0.15)' : 'rgba(51,65,85,0.5)',
+                            }}
                         >
-                            <Text style={{ color: activeTab === tab ? '#fff' : theme.text, fontWeight: '600', textAlign: 'center' }}>
+                            <Text style={{
+                                color: activeTab === tab ? theme.tint : theme.text,
+                                fontWeight: '600',
+                                textAlign: 'center'
+                            }}>
                                 {tab === 'all' ? 'Tous' : tab === 'available' ? 'Disponibles' : 'Indisponibles'}
                             </Text>
                         </Pressable>
                     ))}
                 </View>
+            </View>
+
+            {/* Liste des services */}
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: theme.text }}>Chargement de vos services...</Text>
+                </View>
+            ) : (
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingTop: 8 }}>
 
                 {/* Services List */}
                 {filteredServices.map(service => (
@@ -171,12 +217,29 @@ export default function ServicesManagementScreen() {
                     </View>
                 ))}
 
-                {filteredServices.length === 0 && (
-                    <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                        <Text style={{ color: textSecondary }}>Aucun service trouvé</Text>
-                    </View>
-                )}
-            </ScrollView>
+                    {filteredServices.length === 0 && (
+                        <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                            <Text style={{ color: textSecondary }}>Aucun service trouvé</Text>
+                        </View>
+                    )}
+                </ScrollView>
+            )}
+
+            {/* Modal pour ajouter un produit - Toujours disponible */}
+            <AddProductModal
+                visible={showAddModal}
+                onClose={() => {
+                    console.log('📝 Fermeture du modal');
+                    setShowAddModal(false);
+                }}
+                onProductAdded={() => {
+                    console.log('📝 Produit ajouté, rechargement de la liste');
+                    if (userId) {
+                        loadUserProducts(userId);
+                    }
+                }}
+                userId={userId || ''}
+            />
         </ThemedView>
     );
 }
