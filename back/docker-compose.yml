@@ -268,6 +268,8 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      # AJOUTÉ ICI - URL de la gateway dans le réseau Docker
+      API_GATEWAY_URL: http://api-gateway:8080
     ports:
       - "8084:8084"
     networks:
@@ -295,9 +297,12 @@ services:
       SERVER_ADDRESS: 0.0.0.0
       SERVICES_AUTH_URL: http://auth-service:8082
       SERVICES_USER_URL: http://user-microservice:8081
-      SERVICES_CATALOG_URL: http://service-catalog:8083
+      SERVICES_PRODUCT_URL: http://service-catalog:8083
       SERVICES_TRANSACTION_URL: http://microservice-transaction:8084
       SERVICES_KEYCLOAK_URL: http://keycloak:8085
+      # AJOUTER CES LIGNES
+      KEYCLOAK_URL: http://keycloak:8085
+      KEYCLOAK_REALM: IWA_NextLevel
     ports:
       - "8080:8080"
     networks:

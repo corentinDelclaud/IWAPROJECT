@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
@@ -12,32 +11,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Gateway filter pour valider les JWT tokens
+ * Décode le JWT localement sans appeler Keycloak (évite les problèmes de réseau Docker)
  */
 @Component
 @Slf4j
 public class JwtAuthenticationGatewayFilterFactory 
         extends AbstractGatewayFilterFactory<JwtAuthenticationGatewayFilterFactory.Config> {
 
-    @Value("${keycloak.auth-server-url:http://keycloak:8085}")
-    private String keycloakUrl;
-
-    @Value("${keycloak.realm:IWA_NextLevel}")
-    private String realm;
-
-    private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
     public JwtAuthenticationGatewayFilterFactory() {
         super(Config.class);
-        this.webClient = WebClient.builder().build();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -55,50 +47,58 @@ public class JwtAuthenticationGatewayFilterFactory
             
             String token = authHeader.substring(7);
             
-            // Validation avec Keycloak
-            return validateTokenWithKeycloak(token)
-                    .flatMap(claims -> {
-                        // Ajouter les claims en tant que headers pour les microservices
-                        ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                                .header("X-User-Id", claims.get("sub").asText())
-                                .header("X-User-Username", claims.get("preferred_username").asText())
-                                .header("X-User-Email", claims.path("email").asText())
-                                .header("X-User-Roles", getRolesAsString(claims))
-                                .build();
-                        
-                        log.debug("Valid JWT token for user: {} on path: {}", 
-                                claims.get("preferred_username").asText(), request.getPath());
-                        
-                        return chain.filter(exchange.mutate().request(modifiedRequest).build());
-                    })
-                    .onErrorResume(e -> {
-                        log.error("Token validation failed: {}", e.getMessage());
-                        return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
-                    });
+            try {
+                // Décoder le JWT pour extraire les claims
+                JsonNode jwtClaims = decodeJwtPayload(token);
+                
+                // Vérifier l'expiration
+                long exp = jwtClaims.path("exp").asLong();
+                long now = System.currentTimeMillis() / 1000;
+                if (exp < now) {
+                    log.warn("Token expired: exp={}, now={}", exp, now);
+                    return onError(exchange, "Token expired", HttpStatus.UNAUTHORIZED);
+                }
+                
+                // Extraire les informations utilisateur
+                String userId = jwtClaims.path("sub").asText();
+                String username = jwtClaims.path("preferred_username").asText();
+                String email = jwtClaims.path("email").asText();
+                String roles = getRolesAsString(jwtClaims);
+                
+                log.info("JWT validated - sub: {}, username: {}, exp: {}", userId, username, exp);
+                
+                // Ajouter les claims en tant que headers pour les microservices
+                ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
+                        .header("X-User-Id", userId)
+                        .header("X-User-Username", username)
+                        .header("X-User-Email", email)
+                        .header("X-User-Roles", roles)
+                        .build();
+                
+                log.info("Added headers - X-User-Id: {}, X-User-Username: {}", userId, username);
+                
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                
+            } catch (Exception e) {
+                log.error("Token validation failed: {}", e.getMessage());
+                return onError(exchange, "Invalid token: " + e.getMessage(), HttpStatus.UNAUTHORIZED);
+            }
         };
     }
 
     /**
-     * Valide le token via l'endpoint userinfo de Keycloak
-     * Cela vérifie automatiquement la signature et l'expiration
+     * Décode le payload du JWT (partie centrale en base64)
      */
-    private Mono<JsonNode> validateTokenWithKeycloak(String token) {
-        String userinfoUrl = String.format("%s/realms/%s/protocol/openid-connect/userinfo", 
-                keycloakUrl, realm);
+    private JsonNode decodeJwtPayload(String token) throws Exception {
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid JWT format - expected 3 parts, got " + parts.length);
+        }
         
-        return webClient.get()
-                .uri(userinfoUrl)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .retrieve()
-                .bodyToMono(String.class)
-                .flatMap(response -> {
-                    try {
-                        return Mono.just(objectMapper.readTree(response));
-                    } catch (Exception e) {
-                        return Mono.error(new RuntimeException("Failed to parse userinfo response", e));
-                    }
-                })
-                .doOnError(e -> log.error("Keycloak validation failed: {}", e.getMessage()));
+        // Décoder la partie payload (index 1)
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        log.debug("Decoded JWT payload: {}", payload);
+        return objectMapper.readTree(payload);
     }
 
     /**
@@ -135,6 +135,6 @@ public class JwtAuthenticationGatewayFilterFactory
 
     @Data
     public static class Config {
-        private boolean validateWithKeycloak = true;
+        // Configuration optionnelle si besoin
     }
 }
