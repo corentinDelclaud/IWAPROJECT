@@ -50,9 +50,9 @@ export default function MarketplaceScreen() {
 
     const GameDisplayMap: Record<string, string> = {
         all: t('games.all') || "All",
-        LEAGUE_OF_LEGENDS: t('games.league_of_legends') || "League of Legends",
-        TEAMFIGHT_TACTICS: t('games.teamfight_tactics') || "Teamfight Tactics",
-        ROCKET_LEAGUE: t('games.rocket_league') || "Rocket League",
+        LEAGUE_OF_LEGENDS: t('games.lol') || "League of Legends",
+        TEAMFIGHT_TACTICS: t('games.tft') || "Teamfight Tactics",
+        ROCKET_LEAGUE: t('games.rl') || "Rocket League",
         VALORANT: t('games.valorant') || "Valorant",
         OTHER: t('games.other') || "Other",
     };
@@ -70,7 +70,7 @@ export default function MarketplaceScreen() {
         all: t('categories.all') || "All",
         BOOST: t('categories.boost') || "Boost",
         COACHING: t('categories.coaching') || "Coaching",
-        ACCOUNT_RESALING: t('categories.account_resaling') || "Account Resaling",
+        ACCOUNT_RESALING: t('categories.account') || "Account Resaling",
         OTHER: t('categories.other') || "Other",
     };
 
