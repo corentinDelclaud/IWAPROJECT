@@ -139,6 +139,11 @@ services:
       KC_HTTP_RELATIVE_PATH: "/"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
+      
+      # Configuration hostname depuis .env
+      KC_HOSTNAME: ${API_HOST:-localhost}
+      KC_HOSTNAME_PORT: 8085
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
     ports:
       - "8085:8085"
     volumes:
