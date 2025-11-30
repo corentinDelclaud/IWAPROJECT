@@ -15,7 +15,7 @@ export type Product = {
   rating: number;
   reviews: number;
   description: string;
-  image: string;
+  image: any;  // Peut être une string (URI) ou un require() local
   badges: string[];
   delivery: string;
   online: boolean;

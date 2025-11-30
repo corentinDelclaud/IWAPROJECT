@@ -5,10 +5,14 @@
     "games": {
         "all": "All games",
         "lol": "League of Legends",
+        "tft": "Teamfight Tactics",
+        "rl": "Rocket League",
+        "ow": "Overwatch",
         "valorant": "Valorant",
         "cs2": "Counter-Strike 2",
         "fortnite": "Fortnite",
-        "apex": "Apex Legends"
+        "apex": "Apex Legends",
+        "other": "Other"
     },
     "categories": {
         "all": "All categories",
@@ -16,7 +20,8 @@
         "boost": "Rank boost",
         "carry": "Carry",
         "account": "Accounts",
-        "items": "Items/Skins"
+        "items": "Items/Skins",
+        "other": "Other"
     },
     "service": {
         "by": "by {{provider}}",
