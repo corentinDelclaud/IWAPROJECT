@@ -10,8 +10,9 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
-    Linking,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createProduct } from '@/services/productService';
@@ -106,13 +107,41 @@ export default function AddProductModal({
                     const profile = await apiService.getUserProfile();
                     const stripeAccountId = profile?.stripeAccountId;
 
-                    // Helper to open onboarding link
+                    // Helper to open onboarding link with WebBrowser (in-app browser that returns to app)
                     const openOnboarding = async (accountId: string) => {
                         try {
-                            const resp = await apiService.createStripeAccountLink(accountId);
+                            // Stripe requires HTTP/HTTPS URLs, so we use a web redirect page
+                            // served by Expo web server on port 19006
+                            const redirectUrl = 'http://162.38.36.223:8081/stripe-redirect.html';
+                            console.log('Using web redirect URL:', redirectUrl);
+                            
+                            // Get the account link from backend with web redirect URL
+                            const resp = await apiService.createStripeAccountLink(accountId, redirectUrl);
                             const url = resp?.url;
+                            
                             if (url) {
-                                Linking.openURL(url);
+                                // Open Stripe onboarding in an in-app browser
+                                // The redirect page will automatically redirect to iwaproject://
+                                const result = await WebBrowser.openAuthSessionAsync(
+                                    url, 
+                                    'iwaproject://stripe-onboarding'
+                                );
+                                
+                                console.log('WebBrowser result:', result);
+                                
+                                if (result.type === 'success') {
+                                    // User completed onboarding and was redirected back
+                                    Alert.alert(
+                                        'Succès',
+                                        'Votre compte Stripe a été configuré ! Veuillez réessayer de créer votre produit.',
+                                        [{ text: 'OK' }]
+                                    );
+                                } else if (result.type === 'cancel') {
+                                    Alert.alert(
+                                        'Onboarding annulé',
+                                        'Vous avez annulé la configuration de votre compte Stripe.'
+                                    );
+                                }
                             } else {
                                 Alert.alert('Erreur', "Impossible d'obtenir le lien d'onboarding Stripe.");
                             }
@@ -131,24 +160,24 @@ export default function AddProductModal({
                                 { text: 'Annuler', style: 'cancel' },
                                 {
                                     text: "Créer et connecter",
-                                        onPress: async () => {
-                                            try {
-                                                if (!profile?.email) {
-                                                    Alert.alert('Erreur', "Adresse e-mail manquante pour créer le compte Stripe.");
-                                                    return;
-                                                }
-                                                const createResp = await apiService.createConnectAccount(profile.email);
-                                                const newAccountId = createResp?.accountId;
-                                                if (newAccountId) {
-                                                    await openOnboarding(newAccountId);
-                                                } else {
-                                                    Alert.alert('Erreur', "Impossible de créer le compte Stripe.");
-                                                }
-                                            } catch (err) {
-                                                console.error('Failed to create connect account:', err);
-                                                Alert.alert('Erreur', "Impossible de créer le compte Stripe. Réessayez plus tard.");
+                                    onPress: async () => {
+                                        try {
+                                            if (!profile?.email) {
+                                                Alert.alert('Erreur', "Adresse e-mail manquante pour créer le compte Stripe.");
+                                                return;
                                             }
-                                        },
+                                            const createResp = await apiService.createConnectAccount(profile.email);
+                                            const newAccountId = createResp?.accountId;
+                                            if (newAccountId) {
+                                                await openOnboarding(newAccountId);
+                                            } else {
+                                                Alert.alert('Erreur', "Impossible de créer le compte Stripe.");
+                                            }
+                                        } catch (err) {
+                                            console.error('Failed to create connect account:', err);
+                                            Alert.alert('Erreur', "Impossible de créer le compte Stripe. Réessayez plus tard.");
+                                        }
+                                    },
                                 },
                             ]
                         );

@@ -4,6 +4,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KEYCLOAK_CONFIG } from '@/config/keycloak';
+import { apiService } from '@/services/api';
 
 // Enable web browser warming
 WebBrowser.maybeCompleteAuthSession();
@@ -25,6 +26,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   // accept an optional refresh token to allow refreshing before state is settled
   refreshAccessToken: (refreshTokenArg?: string) => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 interface UserInfo {
@@ -167,6 +169,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
       }
+      
+      // No stored credentials - user needs to login
+      console.log('[Auth] No stored credentials found, user needs to login');
     } catch (error) {
       console.error('Failed to load stored auth:', error);
     } finally {
@@ -239,6 +244,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokenResult.refreshToken || ''),
             AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info)),
           ]);
+
+          // Ensure user is created in user-microservice and Stripe account is created
+          try {
+            await apiService.getUserProfile();
+            console.log('[Auth] User profile ensured on backend after login');
+          } catch (err) {
+            console.warn('[Auth] Failed to ensure user profile after login:', err);
+            // Don't block login if profile creation fails
+          }
         }
       }
     } catch (error) {
@@ -342,6 +356,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUserProfile = async () => {
+    try {
+      console.log('[Auth] Refreshing user profile...');
+      if (!accessToken) {
+        console.warn('[Auth] Cannot refresh profile: no access token');
+        return;
+      }
+      
+      // Fetch updated user profile from the API
+      await apiService.getUserProfile();
+      console.log('[Auth] User profile refreshed successfully');
+    } catch (error) {
+      console.error('[Auth] Failed to refresh user profile:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -353,6 +384,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         refreshAccessToken,
+        refreshUserProfile,
       }}
     >
       {children}

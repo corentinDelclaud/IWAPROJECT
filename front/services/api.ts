@@ -175,11 +175,15 @@ class ApiService {
     return this.makeRequest<any>(endpoint);
   }
 
-  async createStripeAccountLink(accountId: string): Promise<{ url: string }> {
+  async createStripeAccountLink(accountId: string, redirectUrl?: string): Promise<{ url: string }> {
     if (!accountId) throw new Error('AccountId is required');
+    const body: { accountId: string; redirectUrl?: string } = { accountId };
+    if (redirectUrl) {
+      body.redirectUrl = redirectUrl;
+    }
     return this.makeRequest<{ url: string }>(`/api/stripe/account-link`, {
       method: 'POST',
-      body: JSON.stringify({ accountId }),
+      body: JSON.stringify(body),
     });
   }
 

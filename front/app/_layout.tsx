@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
+import { Alert } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { GradientBackground } from '@/components/GradientBackground';
@@ -51,9 +53,44 @@ export default function RootLayout() {
 }
 
   function RootLayoutNav() {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, refreshUserProfile } = useAuth();
     const segments = useSegments();
     const router = useRouter();
+
+      // Handle deep links from Stripe onboarding
+      useEffect(() => {
+        const handleDeepLink = async (event: { url: string }) => {
+          try {
+            const parsed = Linking.parse(event.url);
+            
+            // Handle Stripe onboarding return
+            if (parsed.path === 'stripe-onboarding' && parsed.queryParams?.success === 'true') {
+              // Refresh user profile to get updated Stripe account status
+              await refreshUserProfile();
+              
+              Alert.alert(
+                'Onboarding terminé',
+                'Votre compte Stripe a été configuré avec succès. Vous pouvez maintenant créer des produits.',
+                [{ text: 'OK' }]
+              );
+            }
+          } catch (error) {
+            console.error('Error handling deep link:', error);
+          }
+        };
+
+        // Handle initial URL if app was opened via deep link
+        Linking.getInitialURL().then((url) => {
+          if (url) {
+            handleDeepLink({ url });
+          }
+        });
+
+        // Listen for deep link events while app is running
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+
+        return () => subscription.remove();
+      }, [refreshUserProfile]);
 
       useEffect(() => {
           if (isLoading) return;
