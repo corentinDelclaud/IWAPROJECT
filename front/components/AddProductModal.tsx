@@ -11,6 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createProduct } from '@/services/productService';
@@ -272,13 +273,19 @@ export default function AddProductModal({
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.modalOverlay}
             >
-                <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+                <LinearGradient
+                    colors={["#0f172c", "#401c87", "#1e293b"]}
+                    locations={[0, 0.5, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.modalContainer}
+                >
                     <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: theme.text }]}>
-                            Nouveau Produit
+                        <Text style={styles.modalTitle}>
+                            ✨ Nouveau Produit
                         </Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Text style={[styles.closeButtonText, { color: theme.text }]}>✕</Text>
+                            <Text style={styles.closeButtonText}>×</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -286,19 +293,15 @@ export default function AddProductModal({
 
                         {/* Description */}
                         <View style={styles.fieldContainer}>
-                            <Text style={[styles.label, { color: theme.text }]}>
+                            <Text style={styles.label}>
                                 Description <Text style={styles.required}>*</Text>
                             </Text>
                             <TextInput
-                                style={[styles.input, styles.textArea, {
-                                    color: theme.text,
-                                    backgroundColor: theme.slateCard,
-                                    borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb'
-                                }]}
+                                style={[styles.input, styles.textArea]}
                                 value={formData.description}
                                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                                 placeholder="Décrivez votre service en détail..."
-                                placeholderTextColor={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                placeholderTextColor="#9ca3af"
                                 multiline
                                 numberOfLines={4}
                                 textAlignVertical="top"
@@ -307,19 +310,15 @@ export default function AddProductModal({
 
                         {/* Prix */}
                         <View style={styles.fieldContainer}>
-                            <Text style={[styles.label, { color: theme.text }]}>
+                            <Text style={styles.label}>
                                 Prix (€) <Text style={styles.required}>*</Text>
                             </Text>
                             <TextInput
-                                style={[styles.input, {
-                                    color: theme.text,
-                                    backgroundColor: theme.slateCard,
-                                    borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb'
-                                }]}
+                                style={styles.input}
                                 value={formData.price}
                                 onChangeText={(text) => setFormData({ ...formData, price: text })}
                                 placeholder="Ex: 30.00"
-                                placeholderTextColor={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                placeholderTextColor="#9ca3af"
                                 keyboardType="decimal-pad"
                             />
                         </View>
@@ -423,30 +422,30 @@ export default function AddProductModal({
                         {/* Boutons */}
                         <View style={styles.buttonContainer}>
                             <TouchableOpacity
-                                style={[styles.button, styles.cancelButton, { backgroundColor: theme.slateCard }]}
+                                style={[styles.button, styles.cancelButton]}
                                 onPress={() => {
                                     resetForm();
                                     onClose();
                                 }}
                             >
-                                <Text style={[styles.buttonText, { color: theme.text }]}>Annuler</Text>
+                                <Text style={[styles.buttonText, { color: '#ECEDEE' }]}>Annuler</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={[
                                     styles.button,
                                     styles.submitButton,
-                                    { backgroundColor: !userId ? '#6b7280' : theme.tint }
+                                    { backgroundColor: !userId ? '#6b7280' : theme.purple }
                                 ]}
                                 onPress={handleSubmit}
                             >
                                 <Text style={[styles.buttonText, { color: '#fff' }]}>
-                                    {'Créer'}
+                                    ✨ Créer
                                 </Text>
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </View>
+                </LinearGradient>
             </KeyboardAvoidingView>
             </Modal>
 
@@ -470,13 +469,15 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(15, 23, 44, 0.95)',
     },
     modalContainer: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         maxHeight: '90%',
         paddingBottom: 20,
+        borderTopWidth: 2,
+        borderTopColor: 'rgba(139, 92, 246, 0.3)',
     },
     modalHeader: {
         flexDirection: 'row',
@@ -484,21 +485,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        borderBottomColor: 'rgba(139, 92, 246, 0.2)',
     },
     modalTitle: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: '700',
+        color: '#ECEDEE',
+        letterSpacing: 0.5,
     },
     closeButton: {
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(139, 92, 246, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     closeButtonText: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: '300',
+        color: '#ECEDEE',
     },
     formContainer: {
         padding: 20,
@@ -510,15 +516,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         marginBottom: 8,
+        color: '#ECEDEE',
     },
     required: {
-        color: '#ef4444',
+        color: '#f87171',
     },
     input: {
         borderWidth: 1,
         borderRadius: 12,
         padding: 14,
         fontSize: 16,
+        backgroundColor: 'rgba(30, 41, 59, 0.4)',
+        borderColor: 'rgba(139, 92, 246, 0.3)',
+        color: '#ECEDEE',
     },
     textArea: {
         height: 100,
@@ -531,23 +541,29 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 12,
         padding: 14,
+        backgroundColor: 'rgba(30, 41, 59, 0.4)',
+        borderColor: 'rgba(139, 92, 246, 0.3)',
     },
     pickerButtonText: {
         fontSize: 16,
+        color: '#ECEDEE',
     },
     pickerOptions: {
         marginTop: 8,
         borderWidth: 1,
         borderRadius: 12,
         overflow: 'hidden',
+        backgroundColor: 'rgba(15, 23, 44, 0.95)',
+        borderColor: 'rgba(139, 92, 246, 0.3)',
     },
     pickerOption: {
         padding: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        borderBottomColor: 'rgba(139, 92, 246, 0.2)',
     },
     pickerOptionText: {
         fontSize: 16,
+        color: '#ECEDEE',
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -562,10 +578,16 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: 'rgba(139, 92, 246, 0.5)',
+        backgroundColor: 'rgba(30, 41, 59, 0.4)',
     },
     submitButton: {
         // backgroundColor défini dynamiquement
+        shadowColor: '#8b5cf6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
     buttonText: {
         fontSize: 16,
