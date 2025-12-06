@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -11,12 +11,11 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createProduct } from '@/services/productService';
 import { apiService } from '@/services/api';
+import { StripeOnboardingModal } from './StripeOnboardingModal';
 
 interface AddProductModalProps {
     visible: boolean;
@@ -62,6 +61,128 @@ export default function AddProductModal({
 
     const [showGamePicker, setShowGamePicker] = useState(false);
     const [showServiceTypePicker, setShowServiceTypePicker] = useState(false);
+    const [stripeModalVisible, setStripeModalVisible] = useState(false);
+    const [stripeOnboardingUrl, setStripeOnboardingUrl] = useState<string | null>(null);
+    const [isCheckingStripe, setIsCheckingStripe] = useState(false);
+    const [stripeCheckDone, setStripeCheckDone] = useState(false);
+    const [hasOnboardingUrl, setHasOnboardingUrl] = useState(false); // Pour savoir si on a déjà un lien d'onboarding
+
+    // Vérifier le compte Stripe dès que le modal devient visible
+    useEffect(() => {
+        if (visible && !stripeCheckDone && !isCheckingStripe) {
+            checkStripeAccount();
+        }
+        // Reset quand le modal se ferme
+        if (!visible) {
+            setStripeCheckDone(false);
+            setHasOnboardingUrl(false); // Reset aussi le flag du lien
+        }
+    }, [visible]);
+
+    const checkStripeAccount = async () => {
+        if (!userId) {
+            Alert.alert('Erreur', 'Veuillez patienter, chargement de votre profil en cours...');
+            onClose();
+            return;
+        }
+
+        setIsCheckingStripe(true);
+
+        try {
+            const profile = await apiService.getUserProfile();
+            const stripeAccountId = profile?.stripeAccountId;
+
+            const fetchOnboardingLink = async (accountId: string) => {
+                try {
+                    const resp = await apiService.createStripeAccountLink(accountId);
+                    const url = resp?.url;
+                    if (url) {
+                        setStripeOnboardingUrl(url);
+                        setHasOnboardingUrl(true); // Marquer qu'on a un lien
+                        // Attendre un peu avant d'ouvrir la modal Stripe pour que le modal produit se ferme d'abord
+                        setTimeout(() => {
+                            setStripeModalVisible(true);
+                        }, 100);
+                    } else {
+                        Alert.alert('Erreur', "Impossible d'obtenir le lien d'onboarding Stripe.");
+                    }
+                } catch (err) {
+                    console.error('Failed to create account link:', err);
+                    Alert.alert('Erreur', "Impossible de créer le lien d'onboarding Stripe.");
+                } finally {
+                    setIsCheckingStripe(false);
+                }
+            };
+
+            if (!stripeAccountId) {
+                // Si on a déjà un lien d'onboarding, on réouvre juste la modal
+                if (hasOnboardingUrl && stripeOnboardingUrl) {
+                    setIsCheckingStripe(false);
+                    setTimeout(() => {
+                        setStripeModalVisible(true);
+                    }, 100);
+                    return;
+                }
+
+                // Proposer de créer un compte Stripe
+                setIsCheckingStripe(false);
+                Alert.alert(
+                    'Compte Stripe manquant',
+                    "Votre compte Stripe n'est pas encore connecté. Voulez-vous créer un compte lié et démarrer l'onboarding ?",
+                    [
+                        { text: 'Annuler', style: 'cancel' },
+                        {
+                            text: "Créer et connecter",
+                            onPress: async () => {
+                                try {
+                                    if (!profile?.email) {
+                                        Alert.alert('Erreur', "Adresse e-mail manquante pour créer le compte Stripe.");
+                                        return;
+                                    }
+                                    const createResp = await apiService.createConnectAccount(profile.email);
+                                    const newAccountId = createResp?.accountId;
+                                    if (newAccountId) {
+                                        await fetchOnboardingLink(newAccountId);
+                                    } else {
+                                        Alert.alert('Erreur', "Impossible de créer le compte Stripe.");
+                                    }
+                                } catch (err) {
+                                    console.error('Failed to create connect account:', err);
+                                    Alert.alert('Erreur', "Impossible de créer le compte Stripe. Réessayez plus tard.");
+                                }
+                            },
+                        },
+                    ]
+                );
+                return;
+            }
+
+            // Vérifier le statut du compte
+            const status = await apiService.getStripeAccountStatus(stripeAccountId);
+            if (!status || !(status.payoutsEnabled && status.chargesEnabled && status.detailsSubmitted)) {
+                // Si on a déjà un lien d'onboarding, on réouvre juste la modal
+                if (hasOnboardingUrl && stripeOnboardingUrl) {
+                    setIsCheckingStripe(false);
+                    setTimeout(() => {
+                        setStripeModalVisible(true);
+                    }, 100);
+                    return;
+                }
+                
+                await fetchOnboardingLink(stripeAccountId);
+                return;
+            }
+
+            // Compte Stripe OK, on peut continuer avec le formulaire
+            setStripeCheckDone(true);
+        } catch (err) {
+            console.error('Failed to verify Stripe account status:', err);
+            Alert.alert('Erreur', "Impossible de vérifier l'état de votre compte Stripe. Réessayez ultérieurement.");
+            onClose();
+        } finally {
+            setIsCheckingStripe(false);
+        }
+    };
 
     const resetForm = () => {
         setFormData({
@@ -102,108 +223,6 @@ export default function AddProductModal({
         if (!validateForm()) return;
 
         try {
-                // Ensure the provider has an active Stripe connected account
-                try {
-                    const profile = await apiService.getUserProfile();
-                    const stripeAccountId = profile?.stripeAccountId;
-
-                    // Helper to open onboarding link with WebBrowser (in-app browser that returns to app)
-                    const openOnboarding = async (accountId: string) => {
-                        try {
-                            // Stripe requires HTTP/HTTPS URLs, so we use a web redirect page
-                            // served by Expo web server on port 19006
-                            const redirectUrl = 'http://162.38.36.223:8081/stripe-redirect.html';
-                            console.log('Using web redirect URL:', redirectUrl);
-                            
-                            // Get the account link from backend with web redirect URL
-                            const resp = await apiService.createStripeAccountLink(accountId, redirectUrl);
-                            const url = resp?.url;
-                            
-                            if (url) {
-                                // Open Stripe onboarding in an in-app browser
-                                // The redirect page will automatically redirect to iwaproject://
-                                const result = await WebBrowser.openAuthSessionAsync(
-                                    url, 
-                                    'iwaproject://stripe-onboarding'
-                                );
-                                
-                                console.log('WebBrowser result:', result);
-                                
-                                if (result.type === 'success') {
-                                    // User completed onboarding and was redirected back
-                                    Alert.alert(
-                                        'Succès',
-                                        'Votre compte Stripe a été configuré ! Veuillez réessayer de créer votre produit.',
-                                        [{ text: 'OK' }]
-                                    );
-                                } else if (result.type === 'cancel') {
-                                    Alert.alert(
-                                        'Onboarding annulé',
-                                        'Vous avez annulé la configuration de votre compte Stripe.'
-                                    );
-                                }
-                            } else {
-                                Alert.alert('Erreur', "Impossible d'obtenir le lien d'onboarding Stripe.");
-                            }
-                        } catch (err) {
-                            console.error('Failed to create account link:', err);
-                            Alert.alert('Erreur', "Impossible de créer le lien d'onboarding Stripe.");
-                        }
-                    };
-
-                    if (!stripeAccountId) {
-                        // Offer to create a connected account and start onboarding
-                        Alert.alert(
-                            'Compte Stripe manquant',
-                            "Votre compte Stripe n'est pas encore connecté. Voulez-vous créer un compte lié et démarrer l'onboarding ?",
-                            [
-                                { text: 'Annuler', style: 'cancel' },
-                                {
-                                    text: "Créer et connecter",
-                                    onPress: async () => {
-                                        try {
-                                            if (!profile?.email) {
-                                                Alert.alert('Erreur', "Adresse e-mail manquante pour créer le compte Stripe.");
-                                                return;
-                                            }
-                                            const createResp = await apiService.createConnectAccount(profile.email);
-                                            const newAccountId = createResp?.accountId;
-                                            if (newAccountId) {
-                                                await openOnboarding(newAccountId);
-                                            } else {
-                                                Alert.alert('Erreur', "Impossible de créer le compte Stripe.");
-                                            }
-                                        } catch (err) {
-                                            console.error('Failed to create connect account:', err);
-                                            Alert.alert('Erreur', "Impossible de créer le compte Stripe. Réessayez plus tard.");
-                                        }
-                                    },
-                                },
-                            ]
-                        );
-                        return;
-                    }
-
-                    // Check account status from backend (proxy to stripe-service)
-                    const status = await apiService.getStripeAccountStatus(stripeAccountId);
-                    // Expect booleans payoutsEnabled, chargesEnabled, detailsSubmitted
-                    if (!status || !(status.payoutsEnabled && status.chargesEnabled && status.detailsSubmitted)) {
-                        Alert.alert(
-                            'Compte Stripe incomplet',
-                            "Votre compte Stripe n'est pas encore activé pour recevoir des paiements.",
-                            [
-                                { text: 'Annuler', style: 'cancel' },
-                                { text: "Terminer l'onboarding", onPress: () => openOnboarding(stripeAccountId) },
-                            ]
-                        );
-                        return;
-                    }
-                } catch (err) {
-                    console.error('Failed to verify Stripe account status:', err);
-                    Alert.alert('Erreur', "Impossible de vérifier l'état de votre compte Stripe. Réessayez ultérieurement.");
-                    return;
-                }
-
             // Préparer les données au format attendu par le backend (CreateProductRequest)
             const productData = {
                 description: formData.description.trim(),
@@ -242,13 +261,14 @@ export default function AddProductModal({
     };
 
     return (
-        <Modal
-            visible={visible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={onClose}
-        >
-            <KeyboardAvoidingView
+        <>
+            <Modal
+                visible={visible && stripeCheckDone}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={onClose}
+            >
+                <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.modalOverlay}
             >
@@ -428,7 +448,21 @@ export default function AddProductModal({
                     </ScrollView>
                 </View>
             </KeyboardAvoidingView>
-        </Modal>
+            </Modal>
+
+            <StripeOnboardingModal
+                visible={stripeModalVisible}
+                url={stripeOnboardingUrl}
+                onClose={() => setStripeModalVisible(false)}
+                onRecheck={async () => {
+                    // Fermer la modal Stripe
+                    setStripeModalVisible(false);
+                    // Relancer la vérification du compte
+                    setStripeCheckDone(false);
+                    await checkStripeAccount();
+                }}
+            />
+        </>
     );
 }
 
