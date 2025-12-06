@@ -4,75 +4,28 @@ spring:
 
   cloud:
     gateway:
-      # Configuration des routes
-      routes:
-        # Route pour le service d'authentification
-        - id: auth-service
-          uri: ${services.auth.url}
-          predicates:
-            - Path=/auth/**
-          filters:
-            - RewritePath=/auth/(?<segment>.*), /$\{segment}
+      discovery:
+        locator:
+          enabled: false
+      # NE PAS DÉFINIR DE ROUTES ICI - on utilise GatewayConfig.java
 
-        # Route pour le service utilisateur (commented out - using Java config for JWT auth)
-        # - id: user-service
-        #   uri: ${services.user.url}
-        #   predicates:
-        #     - Path=/api/users/**
-        #   filters:
-        #     - RewritePath=/api/users/(?<segment>.*), /api/users/$\{segment}
-
-        # Route pour le service produit/catalog
-        - id: product-service
-          uri: ${services.product.url}
-          predicates:
-            - Path=/api/products/**
-          filters:
-            - PreserveHostHeader
-
-      # Configuration globale CORS
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-              - "exp://*"
-              - "https://*.expo.dev"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
-
-      # Default filters pour toutes les routes
-      default-filters:
-        - name: Retry
-          args:
-            retries: 3
-            statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
-            methods: GET,POST
-            backoff:
-              firstBackoff: 10ms
-              maxBackoff: 50ms
-              factor: 2
-              basedOnPreviousValue: false
-
-# URLs des microservices backend (internes)
+# URLs des microservices backend
 services:
   auth:
-    url: http://service-auth:8082
+    url: ${SERVICES_AUTH_URL:http://localhost:8082}
   user:
-    url: http://service-user:8081
+    url: ${SERVICES_USER_URL:http://localhost:8081}
   product:
-    url: http://service-catalog:8083
+    url: ${SERVICES_PRODUCT_URL:http://localhost:8083}
+  transaction:
+    url: ${SERVICES_TRANSACTION_URL:http://localhost:8084}
   keycloak:
-    url: http://localhost:9090
+    url: ${SERVICES_KEYCLOAK_URL:http://localhost:8085}
+
+# Configuration Keycloak pour validation JWT
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8085}
+  realm: ${KEYCLOAK_REALM:IWA_NextLevel}
 
 # Configuration du monitoring
 management:

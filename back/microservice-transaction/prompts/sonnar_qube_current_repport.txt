@@ -1,0 +1,7 @@
+TransactionService: 
+(113,16) Replace this "if" statement with a pattern match guard.
+(93,8) Complete cases by adding the missing enum constants or add a default case to this switch.
+(87,17) Refactor this method to reduce its Cognitive Complexity from 18 to the 15 allowed.
+(76, 8) Complete cases by adding the missing enum constants or add a default case to this switch.
+
+// new
