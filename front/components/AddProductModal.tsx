@@ -50,8 +50,6 @@ export default function AddProductModal({
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
-    // Log pour déboguer
-    console.log('🔍 AddProductModal rendu - visible:', visible, 'userId:', userId);
 
     const [formData, setFormData] = useState({
         description: '',

@@ -90,8 +90,6 @@ export default function RootLayout() {
         return () => subscription.remove();
       }, [refreshUserProfile]);
 
-      useEffect(() => {
-          if (isLoading) return;
 
   useEffect(() => {
     if (isLoading) return;
