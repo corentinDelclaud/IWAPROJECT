@@ -32,6 +32,7 @@ public class UserController {
 
     private final UserService userService;
 
+
     /**
      * Get current user's profile
      */

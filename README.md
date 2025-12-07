@@ -1,4 +1,4 @@
-# 🎮 IWA PROJECT
+# 🎮 IWA Project : NextLevel
 
 > Plateforme de marketplace mobile avec architecture microservices
 
@@ -47,17 +47,22 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 │   (Spring Cloud)│
 └────────┬────────┘
          │
-    ┌────┴────┬────────────┬──────────────┬─────────────┐
-    │         │            │              │             │
-┌───▼──┐  ┌──▼───┐  ┌─────▼──────┐  ┌───▼────┐  ┌────▼─────┐
-│ Auth │  │ User │  │  Catalog   │  │ Stripe │  │Transaction│
-│ 8082 │  │ 8081 │  │   8083     │  │ 8084   │  │   8086    │
-└──────┘  └──┬───┘  └─────┬──────┘  └───┬────┘  └────┬──────┘
-             │            │              │            │
-         ┌───▼────────────▼──────────────▼────────────▼───┐
-         │           PostgreSQL Databases                 │
-         │  (Users, Catalog, Transactions, Keycloak)      │
-         └────────────────────────────────────────────────┘
+    ┌────┴────┬────────────┬──────────────┬─────────────┬──────────────┐
+    │         │            │              │             │              │
+┌───▼──┐  ┌──▼───┐  ┌─────▼──────┐  ┌───▼────┐  ┌────▼─────┐  ┌─────▼────┐
+│ Auth │  │ User │  │  Catalog   │  │ Stripe │  │Transaction│  │ Logging  │
+│ 8082 │  │ 8081 │  │   8083     │  │ 8090   │  │   8084    │  │  8087    │
+└──────┘  └──┬───┘  └─────┬──────┘  └───┬────┘  └────┬──────┘  └────┬─────┘
+             │            │              │            │              │
+             │            │              │            │         ┌────▼─────┐
+             │            │              │            │         │  Kafka   │
+             │            │              │            │         │ 9092/93  │
+             └────────────┴──────────────┴────────────┘         └──────────┘
+                                 │
+         ┌───────────────────────▼──────────────────────────────────┐
+         │              PostgreSQL Databases                        │
+         │  (Users, Catalog, Transactions, Keycloak, Logs)          │
+         └──────────────────────────────────────────────────────────┘
 ```
 
 ### Services
@@ -65,9 +70,13 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 - **Auth Service** (8082) : Authentification et gestion des tokens
 - **User Service** (8081) : Gestion des utilisateurs et profils
 - **Catalog Service** (8083) : Gestion des produits/services
-- **Stripe Service** (8084) : Paiements et onboarding marchands
-- **Transaction Service** (8086) : Historique des transactions
+- **Stripe Service** (8090) : Paiements et onboarding marchands
+- **Transaction Service** (8084) : Historique des transactions
+- **Logging Service** (8087) : Centralisation des logs via Kafka
 - **Keycloak** (8085) : Serveur d'identité (IAM)
+- **Kafka** (9092/9093) : Message broker pour la collecte de logs en temps réel
+- **Kafka UI** (8091) : Interface utilisateur pour visualiser le service Kafka (utile pour mieux voir le fonctionnement de kafka)
+
 
 ---
 
@@ -111,8 +120,10 @@ Les services démarrent sur :
 - Auth Service : http://localhost:8082
 - User Service : http://localhost:8081
 - Catalog Service : http://localhost:8083
-- Stripe Service : http://localhost:8084
-- Transaction Service : http://localhost:8086
+- Stripe Service : http://localhost:8090
+- Transaction Service : http://localhost:8084
+- Logging Service : http://localhost:8087
+- Kafka UI : http://localhost:8091
 
 #### 2️⃣ Configuration Frontend
 
@@ -179,6 +190,8 @@ $env:EXPO_PUBLIC_API_HOST="VOTRE_IP"; npm start
 - **Base de données** : PostgreSQL 16
 - **Authentification** : Keycloak 26.0.7 (OAuth2/OIDC)
 - **Paiements** : Stripe API
+- **Message Broker** : Apache Kafka 7.6.0
+- **Logging** : Centralisation via Kafka + PostgreSQL
 - **Conteneurisation** : Docker & Docker Compose
 
 ### DevOps
@@ -197,8 +210,9 @@ IWAPROJECT/
 │   ├── auth-service/             # Authentification (8082)
 │   ├── user-microservice/        # Gestion users (8081)
 │   ├── service-catalog/          # Catalogue produits (8083)
-│   ├── stripe-service/           # Paiements Stripe (8084)
-│   ├── microservice-transaction/ # Transactions (8086)
+│   ├── stripe-service/           # Paiements Stripe (8090)
+│   ├── microservice-transaction/ # Transactions (8084)
+│   ├── logging-service/          # Logs centralisés (8087)
 │   ├── keycloak-service/         # Config Keycloak (8085)
 │   ├── docker-compose.yml        # Orchestration Docker
 │   └── scripts/                  # Scripts utilitaires

@@ -35,6 +35,7 @@
         <module>auth-service</module>
         <module>user-microservice</module>
         <module>stripe-service</module>
+        <module>logging-service</module>
     </modules>
 
     <dependencyManagement>

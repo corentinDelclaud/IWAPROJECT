@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -20,6 +21,9 @@ import java.util.Objects;
 public class UserWebhookService {
 
     private final UserRepository userRepository;
+    
+    @Autowired(required = false)
+    private iwaproject.user_microservice.kafka.producer.LogProducer logProducer;
     private final StripeClient stripeClient;
 
     /**
@@ -111,6 +115,14 @@ public class UserWebhookService {
 
         user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
+
+        // Send a log to Kafka about the user deletion (if Kafka/logging is enabled)
+        if (logProducer != null) {
+            logProducer.sendLog("WARN",
+                String.format("User deleted via Keycloak webhook - ID: %s, Username: %s",
+                    userId, user.getUsername()),
+                null, userId, null, null, null);
+        }
 
         log.info("User {} soft deleted successfully in local database", userId);
     }
