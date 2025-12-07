@@ -74,7 +74,7 @@ GET /api/logs/health
 
 ### Environment Variables
 
-- `SERVER_PORT`: Service port (default: 8084)
+- `SERVER_PORT`: Service port (default: 8087)
 - `KAFKA_BOOTSTRAP_SERVERS`: Kafka broker address (default: kafka:9092)
 - `SPRING_DATASOURCE_URL`: PostgreSQL connection URL
 - `SPRING_DATASOURCE_USERNAME`: Database username
@@ -147,9 +147,9 @@ Logs are automatically cleaned up after 30 days. This can be configured in the `
 ### Monitoring
 
 The service exposes actuator endpoints for monitoring:
-- Health: `http://localhost:8084/actuator/health`
-- Metrics: `http://localhost:8084/actuator/metrics`
-- Prometheus: `http://localhost:8084/actuator/prometheus`
+- Health: `http://localhost:8087/actuator/health`
+- Metrics: `http://localhost:8087/actuator/metrics`
+- Prometheus: `http://localhost:8087/actuator/prometheus`
 
 ## Development
 

@@ -59,19 +59,19 @@ curl http://localhost:8081/api/users/stats
 ### 1. Voir tous les logs récents
 
 ```bash
-curl -s "http://localhost:8084/api/logs/service/user-microservice?page=0&size=10" | python3 -m json.tool
+curl -s "http://localhost:8087/api/logs/service/user-microservice?page=0&size=10" | python3 -m json.tool
 ```
 
 ### 2. Voir uniquement les 5 derniers logs (simple)
 
 ```bash
-curl -s "http://localhost:8084/api/logs/service/user-microservice?size=5&sortDir=DESC" | python3 -m json.tool | grep -A5 '"message"'
+curl -s "http://localhost:8087/api/logs/service/user-microservice?size=5&sortDir=DESC" | python3 -m json.tool | grep -A5 '"message"'
 ```
 
 ### 3. Voir les statistiques des logs
 
 ```bash
-curl -s "http://localhost:8084/api/logs/stats/user-microservice"
+curl -s "http://localhost:8087/api/logs/stats/user-microservice"
 ```
 
 **Réponse :**
@@ -87,20 +87,20 @@ curl -s "http://localhost:8084/api/logs/stats/user-microservice"
 ### 4. Voir uniquement les logs d'erreur
 
 ```bash
-curl -s "http://localhost:8084/api/logs/errors?size=10" | python3 -m json.tool
+curl -s "http://localhost:8087/api/logs/errors?size=10" | python3 -m json.tool
 ```
 
 ### 5. Voir les logs par niveau
 
 ```bash
 # Logs INFO
-curl -s "http://localhost:8084/api/logs/level/INFO?size=10" | python3 -m json.tool
+curl -s "http://localhost:8087/api/logs/level/INFO?size=10" | python3 -m json.tool
 
 # Logs ERROR
-curl -s "http://localhost:8084/api/logs/level/ERROR?size=10" | python3 -m json.tool
+curl -s "http://localhost:8087/api/logs/level/ERROR?size=10" | python3 -m json.tool
 
 # Logs WARN
-curl -s "http://localhost:8084/api/logs/level/WARN?size=10" | python3 -m json.tool
+curl -s "http://localhost:8087/api/logs/level/WARN?size=10" | python3 -m json.tool
 ```
 
 ---
@@ -129,10 +129,10 @@ curl http://localhost:8081/api/users/stats
 sleep 2
 
 # 5. Lire les logs créés
-curl -s "http://localhost:8084/api/logs/service/user-microservice?size=10&sortDir=DESC" | python3 -m json.tool
+curl -s "http://localhost:8087/api/logs/service/user-microservice?size=10&sortDir=DESC" | python3 -m json.tool
 
 # 6. Voir les statistiques
-curl -s "http://localhost:8084/api/logs/stats/user-microservice"
+curl -s "http://localhost:8087/api/logs/stats/user-microservice"
 ```
 
 ---
@@ -148,7 +148,7 @@ docker exec iwa-postgres-logs psql -U postgres -d iwa_logs -c "TRUNCATE TABLE lo
 ### Vérifier que les logs sont supprimés
 
 ```bash
-curl -s "http://localhost:8084/api/logs/service/user-microservice?size=10"
+curl -s "http://localhost:8087/api/logs/service/user-microservice?size=10"
 # Devrait retourner: "content": [], "totalElements": 0
 ```
 

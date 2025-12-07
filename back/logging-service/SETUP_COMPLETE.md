@@ -66,7 +66,7 @@ docker-compose up -d
 This will start:
 - ✅ Kafka broker (port 9092) - using KRaft (no Zookeeper)
 - ✅ PostgreSQL for logs (port 5436)
-- ✅ Logging service (port 8084)
+- ✅ Logging service (port 8087)
 - ✅ All existing microservices
 
 ### Step 2: Create Kafka Topics
@@ -91,7 +91,7 @@ Check Kafka topics:
 
 Check logging service health:
 ```bash
-curl http://localhost:8084/api/logs/health
+curl http://localhost:8087/api/logs/health
 ```
 
 ### Step 4: Test with Sample Log
@@ -108,7 +108,7 @@ Then paste this JSON and press Enter:
 
 Query the log via API:
 ```bash
-curl "http://localhost:8084/api/logs/service/user-microservice?page=0&size=10"
+curl "http://localhost:8087/api/logs/service/user-microservice?page=0&size=10"
 ```
 
 ## 📊 Service Ports
@@ -203,9 +203,9 @@ docker exec -it iwa-postgres-logs psql -U postgres -d iwa_logs -c "SELECT COUNT(
 
 ### Actuator Endpoints
 ```bash
-curl http://localhost:8084/actuator/health
-curl http://localhost:8084/actuator/metrics
-curl http://localhost:8084/actuator/prometheus
+curl http://localhost:8087/actuator/health
+curl http://localhost:8087/actuator/metrics
+curl http://localhost:8087/actuator/prometheus
 ```
 
 ## 🔄 Next Steps

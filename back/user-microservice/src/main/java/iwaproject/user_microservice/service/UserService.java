@@ -163,6 +163,8 @@ public class UserService {
                 String.format("New user created - ID: %s, Username: %s, Email: %s", 
                     keycloakId, username, email),
                 null, keycloakId, null, null, null);
+        }
+        
         // Create Stripe Connect account for the new user
         if (email != null && !email.isEmpty()) {
             try {

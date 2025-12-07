@@ -108,49 +108,49 @@ user-123:{"serviceName":"user-microservice","logLevel":"INFO","message":"User cr
 
 ## Step 6: Query Logs via REST API
 
-The logging service exposes a REST API on port 8084.
+The logging service exposes a REST API on port 8087.
 
 ### Get all logs from a service:
 
 ```bash
-curl "http://localhost:8084/api/logs/service/user-microservice?page=0&size=10"
+curl "http://localhost:8087/api/logs/service/user-microservice?page=0&size=10"
 ```
 
 ### Get error logs:
 
 ```bash
-curl "http://localhost:8084/api/logs/errors?page=0&size=10"
+curl "http://localhost:8087/api/logs/errors?page=0&size=10"
 ```
 
 ### Get logs by level:
 
 ```bash
-curl "http://localhost:8084/api/logs/level/ERROR?page=0&size=10"
+curl "http://localhost:8087/api/logs/level/ERROR?page=0&size=10"
 ```
 
 ### Get logs by correlation ID:
 
 ```bash
-curl "http://localhost:8084/api/logs/correlation/abc-123"
+curl "http://localhost:8087/api/logs/correlation/abc-123"
 ```
 
 ### Get service statistics:
 
 ```bash
-curl "http://localhost:8084/api/logs/stats/user-microservice"
+curl "http://localhost:8087/api/logs/stats/user-microservice"
 ```
 
 ### Get logs within time range:
 
 ```bash
-curl "http://localhost:8084/api/logs/time-range?start=2025-11-26T00:00:00&end=2025-11-26T23:59:59&page=0&size=10"
+curl "http://localhost:8087/api/logs/time-range?start=2025-11-26T00:00:00&end=2025-11-26T23:59:59&page=0&size=10"
 ```
 
 ## Step 7: Check Logging Service Health
 
 ```bash
-curl http://localhost:8084/api/logs/health
-curl http://localhost:8084/actuator/health
+curl http://localhost:8087/api/logs/health
+curl http://localhost:8087/actuator/health
 ```
 
 ## Step 8: Monitor Consumer Groups
@@ -366,8 +366,8 @@ Monitor:
 
 Use the actuator endpoints:
 ```bash
-curl http://localhost:8084/actuator/metrics
-curl http://localhost:8084/actuator/prometheus
+curl http://localhost:8087/actuator/metrics
+curl http://localhost:8087/actuator/prometheus
 ```
 
 ## Next Steps

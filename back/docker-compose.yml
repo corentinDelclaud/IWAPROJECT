@@ -74,7 +74,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8090:8080"
+      - "8091:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: iwa-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
@@ -120,6 +120,27 @@ services:
       - iwa-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d iwa_catalog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # PostgreSQL pour Logging Service
+  postgres-logs:
+    image: postgres:16-alpine
+    container_name: iwa-postgres-logs
+    environment:
+      POSTGRES_DB: iwa_logs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_logs_data:/var/lib/postgresql/data
+    networks:
+      - iwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d iwa_logs"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -329,11 +350,32 @@ services:
     image: iwa-logging-service:latest
     container_name: iwa-logging-service
     environment:
-      SERVER_PORT: 8084
+      SERVER_PORT: 8087
       SERVER_ADDRESS: 0.0.0.0
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-logs:5432/iwa_logs
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SPRING_KAFKA_CONSUMER_GROUP_ID: logging-service-group
       KAFKA_TOPIC_LOGS: logs-user-service
+    ports:
+      - "8087:8087"
+    networks:
+      - iwa-network
+    depends_on:
+      postgres-logs:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8087/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # Transaction Microservice - Gestion des transactions
   microservice-transaction:
     build:
