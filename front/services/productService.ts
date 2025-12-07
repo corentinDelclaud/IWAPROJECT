@@ -7,6 +7,7 @@ import { getGameImage } from '@/utils/gameImages';
 
 // ⚠️ MODE TEST: Mettre à true pour utiliser les données mockées, false pour utiliser le backend réel
 const USE_MOCK_DATA = false;
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
@@ -272,36 +273,25 @@ export async function fetchProductsByFilters(filters: {
 }
 
 /**
- * Créer un nouveau produit
+ * Créer un nouveau produit (nécessite authentification)
  * @param product - Les données du produit à créer
  * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
  */
 export async function createProduct(product: Omit<BackendProduct, 'idService'>): Promise<Product | null> {
     try {
-        // Mode test: simuler la création
-        if (USE_MOCK_DATA) {
-            console.log('🧪 Using MOCK data - creating product:', product);
-            await new Promise(resolve => setTimeout(resolve, 400)); // Simuler latence réseau
-
-            // Générer un nouvel ID
-            const newId = Math.max(...MOCK_PRODUCTS.map(p => p.idService)) + 1;
-            const newProduct: BackendProduct = {
-                ...product,
-                idService: newId,
-            };
-
-            // Ajouter au tableau mock (seulement en mémoire pendant la session)
-            MOCK_PRODUCTS.push(newProduct);
-            console.log(`✅ Mock product created with id ${newId}`);
-
-            return mapBackendProductToFrontend(newProduct);
+        // Récupérer le token JWT
+        const token = await AsyncStorage.getItem('@auth/access_token');
+        
+        if (!token) {
+            console.error('No access token available for creating product');
+            throw new Error('Authentication required');
         }
 
-        // Mode production: appel API réel
         const response = await fetch(API_BASE_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(product),
         });
@@ -319,33 +309,26 @@ export async function createProduct(product: Omit<BackendProduct, 'idService'>):
 }
 
 /**
- * Supprimer un nouveau produit
- * @param product - Les données du produit à créer
- * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ * Supprimer un produit (nécessite authentification)
+ * @param id - L'ID du produit à supprimer
+ * @returns Promise<boolean> - true si supprimé, false sinon
  */
 export async function deleteProduct(id: number): Promise<boolean> {
     try {
-        // Mode test: simuler la suppression
-        if (USE_MOCK_DATA) {
-            console.log(`🧪 Using MOCK data - deleting product ${id}`);
-            await new Promise(resolve => setTimeout(resolve, 300)); // Simuler latence réseau
-
-            const index = MOCK_PRODUCTS.findIndex(p => p.idService === id);
-            if (index === -1) {
-                console.log(`Product ${id} not found in mock data`);
-                return false;
-            }
-
-            // Supprimer du tableau mock (seulement en mémoire pendant la session)
-            MOCK_PRODUCTS.splice(index, 1);
-            console.log(`✅ Mock product ${id} deleted`);
-            return true;
+        // Récupérer le token JWT
+        const token = await AsyncStorage.getItem('@auth/access_token');
+        
+        if (!token) {
+            console.error('No access token available for deleting product');
+            throw new Error('Authentication required');
         }
 
-        // Mode production: appel API réel
         const url = `${API_BASE_URL}/${id}`;
         const response = await fetch(url, {
             method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
         });
 
         if (!response.ok) {

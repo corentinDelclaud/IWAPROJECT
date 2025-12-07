@@ -9,13 +9,11 @@ import { Alert } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { GradientBackground } from '@/components/GradientBackground';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { Text, ActivityIndicator, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { initI18n } from '@/i18n';
 import { MobileHeader } from '@/components/MobileHeader';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -42,13 +40,13 @@ export default function RootLayout() {
   }
 
   return (
-      <AuthProvider>
-    <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DarkTheme}>
-            <RootLayoutNav />
-      </ThemeProvider>
-    </SafeAreaProvider>
-      </AuthProvider>
+    <AuthProvider>
+      <SafeAreaProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DarkTheme}>
+          <RootLayoutNav />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 }
 
@@ -95,40 +93,48 @@ export default function RootLayout() {
       useEffect(() => {
           if (isLoading) return;
 
-          const inAuthGroup = segments[0] === '(tabs)';
-          const inPublicRoute = segments[0] === 'product' || segments[0] === 'login'; // ✅ Routes publiques autorisées
+  useEffect(() => {
+    if (isLoading) return;
 
-          if (!isAuthenticated && inAuthGroup) {
-              console.log('[Navigation] User not authenticated, redirecting to login');
-              router.replace('/login' as any);
-          } else if (isAuthenticated && !inAuthGroup && !inPublicRoute) {
-              console.log('[Navigation] User authenticated, redirecting to tabs');
-              router.replace('/(tabs)');
-          }
-      }, [isAuthenticated, isLoading, segments, router]);
+    const inAuthGroup = segments[0] === '(tabs)';
+    // ✅ Routes accessibles sans redirection (publiques ou authentifiées mais hors tabs)
+    const inAllowedRoute = 
+      segments[0] === 'product' || 
+      segments[0] === 'login' || 
+      segments[0] === 'conversation'; // ✅ Ajout de conversation
 
-
-      if (isLoading) {
-      return (
-        <GradientBackground>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color={Colors.dark.tint} />
-          </View>
-        </GradientBackground>
-      );
+    if (!isAuthenticated && inAuthGroup) {
+      console.log('[Navigation] User not authenticated, redirecting to login');
+      router.replace('/login' as any);
+    } else if (isAuthenticated && !inAuthGroup && !inAllowedRoute) {
+      console.log('[Navigation] User authenticated, redirecting to tabs');
+      router.replace('/(tabs)');
     }
+    // ✅ Si on est dans une route autorisée (product, conversation), on ne redirige PAS
+  }, [isAuthenticated, isLoading, segments, router]);
 
+  if (isLoading) {
     return (
       <GradientBackground>
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-          {/* Only show header when authenticated */}
-          {isAuthenticated && <MobileHeader />}
-          <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </SafeAreaView>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.dark.tint} />
+        </View>
       </GradientBackground>
     );
   }
+
+  return (
+    <GradientBackground>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        {isAuthenticated && <MobileHeader />}
+        <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="product" options={{ headerShown: false }} />
+          <Stack.Screen name="conversation" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </SafeAreaView>
+    </GradientBackground>
+  );
+}
