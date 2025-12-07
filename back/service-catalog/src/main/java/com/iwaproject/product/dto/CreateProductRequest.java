@@ -29,7 +29,9 @@ public class CreateProductRequest {
 
     private Boolean isAvailable = true;
 
-    @NotNull(message = "L'ID du provider est obligatoire")
-    private Integer idProvider;
+    @NotNull(message = "L'IUUD du provider est obligatoire")
+    private String idProvider;
+
+    private String stripeAccountId;
 }
 

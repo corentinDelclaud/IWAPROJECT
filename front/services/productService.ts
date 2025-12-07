@@ -2,6 +2,12 @@
 // Ce service communique avec le backend via l'API Gateway (port 8090)
 // Détection automatique de la plateforme
 import { Platform } from 'react-native';
+import { MOCK_PRODUCTS } from './mockProductData';
+import { getGameImage } from '@/utils/gameImages';
+
+// ⚠️ MODE TEST: Mettre à true pour utiliser les données mockées, false pour utiliser le backend réel
+const USE_MOCK_DATA = false;
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
@@ -25,7 +31,7 @@ export interface Product {
     rating: number;
     reviews: number;
     delivery: string;
-    image: string;
+    image: any;  // Peut être une string (URI) ou un require() local
     online: boolean;
     badges: string[];
     deliveryTime?: string;
@@ -35,12 +41,13 @@ export interface Product {
 // Interface des données reçues du backend
 interface BackendProduct {
     idService: number;
-    name: string;
     description: string;
-    price: number;
-    game: string;
-    serviceType: string;
-    idProvider: number;
+    price: number;  // Float dans le backend
+    game: string;   // Enum Game: VALORANT, LEAGUE_OF_LEGENDS, etc.
+    serviceType: string;  // Enum ServiceType: COACHING, BOOST, etc.
+    idProvider: string;  // UUID du provider Keycloak
+    unique?: boolean;     // Optionnel, défaut: false
+    isAvailable?: boolean; // Optionnel, défaut: true
     providerName?: string;
     imageUrl?: string;
     rating?: number;
@@ -51,10 +58,22 @@ interface BackendProduct {
  * Ajoute des valeurs par défaut pour les champs manquants
  */
 function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
+    // Générer un titre à partir de la description ou des infos du service
+    const generateTitle = () => {
+        if (backendProduct.description) {
+            // Prendre les 60 premiers caractères de la description comme titre
+            const title = backendProduct.description.split('-')[0]?.trim() ||
+                         backendProduct.description.substring(0, 60).trim();
+            return title + (backendProduct.description.length > 60 ? '...' : '');
+        }
+        // Sinon, générer un titre basé sur le type de service et le jeu
+        return `${backendProduct.serviceType || 'Service'} ${backendProduct.game || ''}`.trim();
+    };
+
     return {
         id: backendProduct.idService,
-        title: backendProduct.name || backendProduct.description?.split('-')[0]?.trim() || 'Produit sans titre',
-        description: backendProduct.description,
+        title: generateTitle(),
+        description: backendProduct.description || 'Aucune description disponible',
         price: `${backendProduct.price}€`,  // Formatage du prix avec le symbole €
         game: backendProduct.game?.toLowerCase() || 'all',
         category: backendProduct.serviceType?.toLowerCase() || 'all',
@@ -62,8 +81,9 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
         rating: backendProduct.rating || 4.5,
         reviews: 127,  // Valeur par défaut - à récupérer du backend plus tard
         delivery: '24-48h',  // Temps de livraison par défaut
-        image: backendProduct.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image',
-        online: true, // Valeur par défaut
+        // Utiliser l'image du jeu si pas d'imageUrl fournie
+        image: backendProduct.imageUrl || getGameImage(backendProduct.game),
+        online: backendProduct.isAvailable !== false, // Utiliser isAvailable du backend
         badges: ['Vérifié', 'Rapide'], // Badges par défaut
         deliveryTime: '24-48h', // Temps de livraison par défaut
         stats: [
@@ -79,6 +99,15 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
  */
 export async function fetchProducts(): Promise<Product[]> {
     try {
+        // Mode test: utiliser les données mockées
+        if (USE_MOCK_DATA) {
+            console.log('🧪 Using MOCK data - fetching all products');
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simuler latence réseau
+            console.log(`Received ${MOCK_PRODUCTS.length} mock products`);
+            return MOCK_PRODUCTS.map(mapBackendProductToFrontend);
+        }
+
+        // Mode production: appel API réel
         console.log('Fetching products from:', API_BASE_URL);
         const response = await fetch(API_BASE_URL);
 
@@ -105,6 +134,20 @@ export async function fetchProducts(): Promise<Product[]> {
  */
 export async function fetchProductById(id: number): Promise<Product | null> {
     try {
+        // Mode test: utiliser les données mockées
+        if (USE_MOCK_DATA) {
+            console.log(`🧪 Using MOCK data - fetching product ${id}`);
+            await new Promise(resolve => setTimeout(resolve, 200)); // Simuler latence réseau
+            const mockProduct = MOCK_PRODUCTS.find(p => p.idService === id);
+            if (!mockProduct) {
+                console.log(`Product ${id} not found in mock data`);
+                return null;
+            }
+            console.log(`✅ Found mock product ${id}:`, mockProduct);
+            return mapBackendProductToFrontend(mockProduct);
+        }
+
+        // Mode production: appel API réel
         const url = `${API_BASE_URL}/${id}`;
         console.log(`🔍 Fetching product ${id} from:`, url);
 
@@ -144,9 +187,52 @@ export async function fetchProductsByFilters(filters: {
     type?: string;
     minPrice?: number;
     maxPrice?: number;
-    idProvider?: number;
+    idProvider?: string;  // UUID du provider
 }): Promise<Product[]> {
     try {
+        // Mode test: filtrer les données mockées
+        if (USE_MOCK_DATA) {
+            console.log('🧪 Using MOCK data - filtering products with:', filters);
+            await new Promise(resolve => setTimeout(resolve, 250)); // Simuler latence réseau
+
+            let filteredProducts = [...MOCK_PRODUCTS];
+
+            // Filtrer par jeu
+            if (filters.game && filters.game !== 'all') {
+                filteredProducts = filteredProducts.filter(
+                    p => p.game.toUpperCase() === filters.game!.toUpperCase()
+                );
+            }
+
+            // Filtrer par type de service
+            if (filters.type && filters.type !== 'all') {
+                filteredProducts = filteredProducts.filter(
+                    p => p.serviceType.toUpperCase() === filters.type!.toUpperCase()
+                );
+            }
+
+            // Filtrer par prix min
+            if (filters.minPrice !== undefined) {
+                filteredProducts = filteredProducts.filter(p => p.price >= filters.minPrice!);
+            }
+
+            // Filtrer par prix max
+            if (filters.maxPrice !== undefined) {
+                filteredProducts = filteredProducts.filter(p => p.price <= filters.maxPrice!);
+            }
+
+            // Filtrer par provider
+            if (filters.idProvider) {
+                filteredProducts = filteredProducts.filter(
+                    p => p.idProvider === filters.idProvider
+                );
+            }
+
+            console.log(`Found ${filteredProducts.length} filtered mock products`);
+            return filteredProducts.map(mapBackendProductToFrontend);
+        }
+
+        // Mode production: appel API réel
         // Construction des paramètres de requête
         const params = new URLSearchParams();
 
@@ -187,16 +273,25 @@ export async function fetchProductsByFilters(filters: {
 }
 
 /**
- * Créer un nouveau produit
+ * Créer un nouveau produit (nécessite authentification)
  * @param product - Les données du produit à créer
  * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
  */
 export async function createProduct(product: Omit<BackendProduct, 'idService'>): Promise<Product | null> {
     try {
+        // Récupérer le token JWT
+        const token = await AsyncStorage.getItem('@auth/access_token');
+        
+        if (!token) {
+            console.error('No access token available for creating product');
+            throw new Error('Authentication required');
+        }
+
         const response = await fetch(API_BASE_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(product),
         });
@@ -214,15 +309,26 @@ export async function createProduct(product: Omit<BackendProduct, 'idService'>):
 }
 
 /**
- * Supprimer un nouveau produit
- * @param product - Les données du produit à créer
- * @returns Promise<Product | null> - Le produit créé ou null en cas d'erreur
+ * Supprimer un produit (nécessite authentification)
+ * @param id - L'ID du produit à supprimer
+ * @returns Promise<boolean> - true si supprimé, false sinon
  */
 export async function deleteProduct(id: number): Promise<boolean> {
     try {
+        // Récupérer le token JWT
+        const token = await AsyncStorage.getItem('@auth/access_token');
+        
+        if (!token) {
+            console.error('No access token available for deleting product');
+            throw new Error('Authentication required');
+        }
+
         const url = `${API_BASE_URL}/${id}`;
         const response = await fetch(url, {
             method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
         });
 
         if (!response.ok) {
@@ -238,10 +344,10 @@ export async function deleteProduct(id: number): Promise<boolean> {
 
 /**
  * Récupère les produits d'un fournisseur spécifique
- * @param idProvider - L'identifiant du fournisseur
+ * @param idProvider - L'identifiant du fournisseur (UUID)
  * @returns Promise<Product[]> - Liste des produits du fournisseur
  */
-export async function fetchProductsByProvider(idProvider: number): Promise<Product[]> {
+export async function fetchProductsByProvider(idProvider: string): Promise<Product[]> {
     try {
         const url = `${API_BASE_URL}/provider/${idProvider}`;
         console.log(`Fetching products for provider ${idProvider} from:`, url);

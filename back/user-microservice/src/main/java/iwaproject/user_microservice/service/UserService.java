@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final StripeClient stripeClient;
     
     @Autowired(required = false)
     private UserEventProducer userEventProducer;
@@ -35,8 +36,9 @@ public class UserService {
     @Autowired(required = false)
     private LogProducer logProducer;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, StripeClient stripeClient) {
         this.userRepository = userRepository;
+        this.stripeClient = stripeClient;
     }
 
     /**
@@ -161,6 +163,20 @@ public class UserService {
                 String.format("New user created - ID: %s, Username: %s, Email: %s", 
                     keycloakId, username, email),
                 null, keycloakId, null, null, null);
+        // Create Stripe Connect account for the new user
+        if (email != null && !email.isEmpty()) {
+            try {
+                log.info("Creating Stripe Connect account for user: {}", email);
+                String stripeAccountId = stripeClient.createConnectAccount(email);
+                if (stripeAccountId != null) {
+                    savedUser.setStripeAccountId(stripeAccountId);
+                    savedUser = userRepository.save(savedUser);
+                    log.info("Stripe account created and linked to user: {}", stripeAccountId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to create Stripe account for user {}: {}", email, e.getMessage());
+                // Don't fail user creation if Stripe account creation fails
+            }
         }
 
         // Publish user created event
@@ -303,6 +319,7 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
+                .stripeAccountId(user.getStripeAccountId())
                 .lastName(user.getLastName())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

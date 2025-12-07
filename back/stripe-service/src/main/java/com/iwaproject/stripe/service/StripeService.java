@@ -61,22 +61,35 @@ public class StripeService {
      */
     public CreateAccountLinkResponse createAccountLink(CreateAccountLinkRequest request) throws StripeException {
         log.info("Creating account link for account: {}", request.getAccountId());
+        log.info("Received redirectUrl from request: {}", request.getRedirectUrl());
         
-                // Use frontend URL and onboarding return path for both refresh and return destinations.
-                String base = stripeConfig.getFrontendUrl();
-                String returnPath = stripeConfig.getOnboardingReturnPath();
-                if (!returnPath.startsWith("/")) {
-                        returnPath = "/" + returnPath; // normalize
-                }
-                String refreshUrl = base + returnPath + (returnPath.endsWith("/") ? "" : "/") + "?refresh=true";
-                String returnUrl = base + returnPath + (returnPath.endsWith("/") ? "" : "/") + "?accountId=" + request.getAccountId();
+        // Use custom redirect URL if provided (for mobile deep linking), otherwise use default frontend URL
+        String redirectUrl = request.getRedirectUrl();
+        if (redirectUrl == null || redirectUrl.isEmpty()) {
+            String base = stripeConfig.getFrontendUrl();
+            String returnPath = stripeConfig.getOnboardingReturnPath();
+            if (!returnPath.startsWith("/")) {
+                returnPath = "/" + returnPath;
+            }
+            redirectUrl = base + returnPath;
+            log.info("No redirectUrl provided, using default: {}", redirectUrl);
+        } else {
+            log.info("Using custom redirectUrl for mobile deep linking: {}", redirectUrl);
+        }
+        
+        // Add account ID as query parameter for both refresh and return URLs
+        String refreshUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "refresh=true";
+        String returnUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "success=true&accountId=" + request.getAccountId();
 
-                AccountLinkCreateParams params = AccountLinkCreateParams.builder()
-                                .setAccount(request.getAccountId())
-                                .setRefreshUrl(refreshUrl)
-                                .setReturnUrl(returnUrl)
-                                .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
-                                .build();
+        log.info("Final refreshUrl: {}", refreshUrl);
+        log.info("Final returnUrl: {}", returnUrl);
+
+        AccountLinkCreateParams params = AccountLinkCreateParams.builder()
+                .setAccount(request.getAccountId())
+                .setRefreshUrl(refreshUrl)
+                .setReturnUrl(returnUrl)
+                .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
+                .build();
 
         AccountLink accountLink = AccountLink.create(params);
         log.info("Created account link: {}", accountLink.getUrl());

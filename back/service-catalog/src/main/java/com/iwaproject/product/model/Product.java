@@ -36,5 +36,15 @@ public class Product {
     private Boolean isAvailable = true;
 
     @Column("id_provider")
-    private Integer idProvider;
+    private String idProvider;
+
+    // Stripe fields
+    @Column("stripe_product_id")
+    private String stripeProductId;
+
+    @Column("stripe_price_id")
+    private String stripePriceId;
+
+    @Column("stripe_account_id")
+    private String stripeAccountId;
 }

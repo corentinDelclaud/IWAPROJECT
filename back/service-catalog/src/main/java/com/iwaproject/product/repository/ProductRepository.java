@@ -35,7 +35,7 @@ public interface ProductRepository extends CrudRepository<Product, Integer> {
 
     // Trouver par provider
     @Query("SELECT * FROM SERVICE WHERE ID_PROVIDER = :idProvider")
-    List<Product> findByIdProvider(@Param("idProvider") Integer idProvider);
+    List<Product> findByIdProvider(@Param("idProvider") String idProvider);
 
     // Trouver les services disponibles par jeu
     @Query("SELECT * FROM SERVICE WHERE GAME = :game AND IS_AVAILABLE = true")
@@ -46,7 +46,7 @@ public interface ProductRepository extends CrudRepository<Product, Integer> {
     List<Product> findByServiceTypeAndIsAvailableTrue(@Param("serviceType") String serviceType);
 
     //Trouver les services disponibles par jeu et/ou type et/ou fourchette de prix et/ou provider
-    // exemple : /products/filter?game=GAME_NAME&serviceType=TYPE_NAME&minPrice=10.00&maxPrice=50.00&idProvider=1
+    // exemple : /products/filter?game=GAME_NAME&serviceType=TYPE_NAME&minPrice=10.00&maxPrice=50.00&idProvider="1"
     @Query("SELECT * FROM SERVICE WHERE " +
             "(:game IS NULL OR GAME = :game) AND " +
             "(:type IS NULL OR SERVICE_TYPE = :type) AND " +
@@ -58,6 +58,6 @@ public interface ProductRepository extends CrudRepository<Product, Integer> {
             @Param("type") String type,
             @Param("minPrice") Float minPrice,
             @Param("maxPrice") Float maxPrice,
-            @Param("idProvider") Integer idProvider
+            @Param("idProvider") String idProvider
     );
 }

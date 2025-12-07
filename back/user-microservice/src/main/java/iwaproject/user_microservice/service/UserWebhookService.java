@@ -24,6 +24,7 @@ public class UserWebhookService {
     
     @Autowired(required = false)
     private iwaproject.user_microservice.kafka.producer.LogProducer logProducer;
+    private final StripeClient stripeClient;
 
     /**
      * Create a new user from Keycloak webhook data
@@ -48,7 +49,26 @@ public class UserWebhookService {
                 .build();
 
         userRepository.save(Objects.requireNonNull(user));
-        userRepository.save(user);
+
+        // Try to create a Stripe Connect account for the user and save the account id
+        try {
+            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                String accountId = stripeClient.createConnectAccount(user.getEmail());
+                if (accountId != null) {
+                    user.setStripeAccountId(accountId);
+                    userRepository.save(user);
+                    log.info("Stripe account {} associated with user {}", accountId, user.getId());
+                } else {
+                    log.warn("Stripe client returned null accountId for user {}", user.getId());
+                }
+            } else {
+                log.warn("User {} has no email, skipping Stripe account creation", user.getId());
+            }
+        } catch (Exception e) {
+            // Do not fail the whole webhook processing if Stripe call fails. Log and move on.
+            log.error("Failed to create Stripe account for user {}: {}", user.getId(), e.getMessage(), e);
+        }
+
         log.info("User {} created successfully in local database", user.getId());
     }
 

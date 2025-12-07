@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS service (
         price DECIMAL(10, 2) NOT NULL,
         is_unique BOOLEAN DEFAULT FALSE,
         is_available BOOLEAN DEFAULT TRUE,
-        id_provider INT NOT NULL
+        id_provider TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_service_game ON service(game);
