@@ -1,4 +1,4 @@
-# 🎮 IWA Project : NextLevel
+# IWA Project : NextLevel
 
 > Plateforme de marketplace mobile avec architecture microservices
 
@@ -6,22 +6,22 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 
 ---
 
-## 📑 Table des matières
+## Table des matières
 
-- [✨ Fonctionnalités](#-fonctionnalités)
-- [🏗️ Architecture](#️-architecture)
-- [🚀 Démarrage rapide](#-démarrage-rapide)
-- [🛠️ Stack technique](#️-stack-technique)
-- [📂 Structure du projet](#-structure-du-projet)
-- [🔧 Configuration](#-configuration)
-- [📚 Documentation](#-documentation)
-- [👥 Contribution](#-contribution)
+- [Fonctionnalités](#-fonctionnalités)
+- [Architecture](#️-architecture)
+- [Démarrage rapide](#-démarrage-rapide)
+- [Stack technique](#️-stack-technique)
+- [Structure du projet](#-structure-du-projet)
+- [Configuration](#-configuration)
+- [Documentation](#-documentation)
+- [Contribution](#-contribution)
 
 ---
 
-## ✨ Fonctionnalités
+## Fonctionnalités
 
-### 🎯 Fonctionnalités principales
+### Fonctionnalités principales
 - **Marketplace** : Consultation et achat de services/produits
 - **Messagerie temps réel** : Chat entre utilisateurs via SSE (Server-Sent Events)
 - **Authentification sécurisée** : OAuth2/OIDC avec Keycloak
@@ -29,7 +29,7 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 - **Multi-langue** : Support FR, EN, DE
 - **Gestion de profil** : Édition des informations utilisateur
 
-### 🔐 Sécurité
+### Sécurité
 - Authentification Keycloak (SSO)
 - Gestion des rôles et permissions
 - Tokens JWT pour les API
@@ -37,7 +37,7 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Backend - Microservices
 
@@ -80,7 +80,7 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 
 ---
 
-## 🚀 Démarrage rapide
+## Démarrage rapide
 
 ### Prérequis
 
@@ -89,9 +89,9 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 - **Java 21** (pour développement backend)
 - **Maven 3.8+** (pour développement backend)
 
-### 🎬 Démarrage de l'application
+### Démarrage de l'application
 
-#### 1️⃣ Configuration Backend
+#### Configuration Backend
 
 **Avant de démarrer le backend, configurer le fichier `.env` :**
 
@@ -104,6 +104,9 @@ cp .env.example .env
 Dans `/back/.env`, modifier la ligne :
 ```env
 API_HOST=VOTRE_IP  # Par exemple: 192.168.1.12
+
+STRIPE_SECRET_KEY # 
+STRIPE_PUBLISHABLE_KEY #
 ```
 
 > ⚠️ **Important** : L'IP dans le backend doit être la **même** que celle utilisée pour le frontend !
@@ -390,7 +393,10 @@ cp .env.example .env
 # Éditer front/.env → EXPO_PUBLIC_API_HOST=VOTRE_IP (la même IP !)
 
 # 4. Démarrer le Frontend
+depuis le dossier front
 npm start
+ou
+$env:EXPO_PUBLIC_API_HOST="192.168.X.X"; npm start (meilleur option pour test)
 
 # 5. Configurer Keycloak
 # → http://localhost:8085 (admin/admin)
