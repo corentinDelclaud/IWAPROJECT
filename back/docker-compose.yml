@@ -17,9 +17,13 @@ volumes:
     driver: local
   postgres_keycloak_data:
     driver: local
+  postgres_logs_data:
+    driver: local
   postgres_transaction_data:
     driver: local
   keycloak_data:
+    driver: local
+  kafka_data:
     driver: local
 
 services:
@@ -27,6 +31,57 @@ services:
   # BASES DE DONNÉES
   # ==============================================================================
   
+  # Kafka - Message broker 
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: iwa-kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - iwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # Kafka UI - Web interface for Kafka
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: iwa-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: iwa-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - iwa-network
+
   # PostgreSQL pour User Microservice
   postgres-users:
     image: postgres:16-alpine
@@ -208,6 +263,11 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       KEYCLOAK_ISSUER_URI: http://${API_HOST:-localhost}:8085/realms/IWA_NextLevel
       KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
+      # Kafka configuration
+      SPRING_KAFKA_ENABLED: "true"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_LOGS: logs-user-service
+      KAFKA_TOPIC_USER_EVENTS: user-events
       # URL used by the user-microservice to contact the stripe-service inside Docker
       STRIPE_SERVICE_URL: http://stripe-service:8090
     ports:
@@ -219,6 +279,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      kafka:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
@@ -259,6 +321,19 @@ services:
       retries: 3
       start_period: 20s
 
+  # Logging Service - Centralized logging with Kafka
+  logging-service:
+    build:
+      context: .
+      dockerfile: ./logging-service/Dockerfile
+    image: iwa-logging-service:latest
+    container_name: iwa-logging-service
+    environment:
+      SERVER_PORT: 8084
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: logging-service-group
+      KAFKA_TOPIC_LOGS: logs-user-service
   # Transaction Microservice - Gestion des transactions
   microservice-transaction:
     build:
@@ -319,6 +394,8 @@ services:
       user-microservice:
         condition: service_started
       service-catalog:
+        condition: service_started
+      logging-service:
         condition: service_started
       microservice-transaction:
         condition: service_started
