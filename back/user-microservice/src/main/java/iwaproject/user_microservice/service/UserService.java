@@ -27,12 +27,14 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final StripeClient stripeClient;
     
     @Autowired(required = false)
     private UserEventProducer userEventProducer;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, StripeClient stripeClient) {
         this.userRepository = userRepository;
+        this.stripeClient = stripeClient;
     }
 
     /**
@@ -115,7 +117,7 @@ public class UserService {
     public User createUser(String keycloakId, String username, String email, String firstName, String lastName) {
         log.info("Creating new user with Keycloak ID: {}", keycloakId);
 
-        if (userRepository.findById(keycloakId).isPresent()) {
+        if (keycloakId != null && userRepository.findById(keycloakId).isPresent()) {
             throw new UserAlreadyExistsException("User already exists with id: " + keycloakId);
         }
 
@@ -127,8 +129,29 @@ public class UserService {
                 .lastName(lastName)
                 .build();
 
+
+        if (user == null) {
+            throw new RuntimeException("Failed to save user with id: " + keycloakId);
+        }
         User savedUser = userRepository.save(user);
+        
         log.info("User created successfully: {}", keycloakId);
+
+        // Create Stripe Connect account for the new user
+        if (email != null && !email.isEmpty()) {
+            try {
+                log.info("Creating Stripe Connect account for user: {}", email);
+                String stripeAccountId = stripeClient.createConnectAccount(email);
+                if (stripeAccountId != null) {
+                    savedUser.setStripeAccountId(stripeAccountId);
+                    savedUser = userRepository.save(savedUser);
+                    log.info("Stripe account created and linked to user: {}", stripeAccountId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to create Stripe account for user {}: {}", email, e.getMessage());
+                // Don't fail user creation if Stripe account creation fails
+            }
+        }
 
         // Publish user created event
         publishUserEvent(savedUser, "USER_CREATED");
@@ -143,6 +166,9 @@ public class UserService {
     @Transactional
     public User getOrCreateUser(String keycloakId, String username, String email, String firstName, String lastName) {
         log.debug("Getting or creating user with Keycloak ID: {}", keycloakId);
+        if (keycloakId == null) {
+            throw new IllegalArgumentException("Keycloak ID cannot be null");
+        }
         Optional<User> existingUser = userRepository.findById(keycloakId);
         if (existingUser.isPresent()) {
             return existingUser.get();
@@ -258,6 +284,7 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
+                .stripeAccountId(user.getStripeAccountId())
                 .lastName(user.getLastName())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

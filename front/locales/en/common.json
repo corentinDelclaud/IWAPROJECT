@@ -8,6 +8,7 @@
         "marketplace": "Marketplace",
         "messaging": "Messaging",
         "orders": "Orders",
+        "myServices": "My Services",
         "profile": "Profile"
     },
     "home": {
@@ -28,6 +29,11 @@
         "reviews": {
             "title": "Reviews",
             "subtitle": "Manage your ratings"
+        }
+        ,
+        "profile": {
+            "title": "Profile",
+            "subtitle": "View your account information"
         }
     }
 }

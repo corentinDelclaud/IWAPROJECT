@@ -8,6 +8,7 @@
         "marketplace": "Marktplatz",
         "messaging": "Nachrichten",
         "orders": "Bestellungen",
+        "myServices": "Meine Dienste",
         "profile": "Profil"
     },
     "home": {
@@ -28,6 +29,11 @@
         "reviews": {
             "title": "Bewertungen",
             "subtitle": "Deine Bewertungen verwalten"
+        }
+        ,
+        "profile": {
+            "title": "Profil",
+            "subtitle": "Ihre Kontoinformationen ansehen und bearbeiten"
         }
     }
 }

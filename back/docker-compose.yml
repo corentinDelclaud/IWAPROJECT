@@ -1,5 +1,3 @@
-version: '3.8'
-
 # ==============================================================================
 # DOCKER COMPOSE - IWA PROJECT
 # ==============================================================================
@@ -18,6 +16,8 @@ volumes:
   postgres_catalog_data:
     driver: local
   postgres_keycloak_data:
+    driver: local
+  postgres_transaction_data:
     driver: local
   keycloak_data:
     driver: local
@@ -70,6 +70,27 @@ services:
       retries: 5
       start_period: 10s
 
+  # PostgreSQL pour Transaction Microservice
+  postgres-transaction:
+    image: postgres:16-alpine
+    container_name: iwa-postgres-transaction
+    environment:
+      POSTGRES_DB: iwa_transaction
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_transaction_data:/var/lib/postgresql/data
+    networks:
+      - iwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d iwa_transaction"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # PostgreSQL pour Keycloak
   postgres-keycloak:
     image: postgres:16-alpine
@@ -115,13 +136,21 @@ services:
       KC_HTTP_PORT: 8085
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_RELATIVE_PATH: "/"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
+      
+      # Configuration hostname depuis .env
+      KC_HOSTNAME: ${API_HOST:-localhost}
+      KC_HOSTNAME_PORT: 8085
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
     ports:
       - "8085:8085"
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak-service/keycloak-config/realms:/opt/keycloak/data/import:ro
+      # Mount providers directory to load custom Keycloak extensions (webhook listener)
+      - ./keycloak-service/providers:/opt/keycloak/providers:ro
     networks:
       - iwa-network
     depends_on:
@@ -177,8 +206,10 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      KEYCLOAK_ISSUER_URI: http://keycloak:8085/realms/IWA_NextLevel
+      KEYCLOAK_ISSUER_URI: http://${API_HOST:-localhost}:8085/realms/IWA_NextLevel
       KEYCLOAK_JWK_SET_URI: http://keycloak:8085/realms/IWA_NextLevel/protocol/openid-connect/certs
+      # URL used by the user-microservice to contact the stripe-service inside Docker
+      STRIPE_SERVICE_URL: http://stripe-service:8090
     ports:
       - "8081:8081"
     networks:
@@ -210,6 +241,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      STRIPE_SERVICE_URL: http://stripe-service:8090
     ports:
       - "8083:8083"
     networks:
@@ -217,9 +249,42 @@ services:
     depends_on:
       postgres-catalog:
         condition: service_healthy
+      stripe-service:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8083/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Transaction Microservice - Gestion des transactions
+  microservice-transaction:
+    build:
+      context: .
+      dockerfile: ./microservice-transaction/Dockerfile
+    image: iwa-microservice-transaction:latest
+    container_name: iwa-microservice-transaction
+    environment:
+      SERVER_PORT: 8084
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-transaction:5432/iwa_transaction
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      # AJOUTÉ ICI - URL de la gateway dans le réseau Docker
+      API_GATEWAY_URL: http://api-gateway:8080
+    ports:
+      - "8084:8084"
+    networks:
+      - iwa-network
+    depends_on:
+      postgres-transaction:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8084/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -237,8 +302,13 @@ services:
       SERVER_ADDRESS: 0.0.0.0
       SERVICES_AUTH_URL: http://auth-service:8082
       SERVICES_USER_URL: http://user-microservice:8081
-      SERVICES_CATALOG_URL: http://service-catalog:8083
+      SERVICES_PRODUCT_URL: http://service-catalog:8083
+      SERVICES_TRANSACTION_URL: http://microservice-transaction:8084
       SERVICES_KEYCLOAK_URL: http://keycloak:8085
+      SERVICES_STRIPE_URL: http://stripe-service:8090
+      # AJOUTER CES LIGNES
+      KEYCLOAK_URL: http://keycloak:8085
+      KEYCLOAK_REALM: IWA_NextLevel
     ports:
       - "8080:8080"
     networks:
@@ -250,6 +320,8 @@ services:
         condition: service_started
       service-catalog:
         condition: service_started
+      microservice-transaction:
+        condition: service_started
       keycloak:
         condition: service_started
     restart: unless-stopped
@@ -259,3 +331,28 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # Stripe Service - Payment integration
+  stripe-service:
+    build:
+      context: ./stripe-service
+      dockerfile: Dockerfile
+    image: iwa-stripe-service:latest
+    container_name: iwa-stripe-service
+    environment:
+      SERVER_PORT: 8090
+      SERVER_ADDRESS: 0.0.0.0
+      # Provide stripe keys via env when starting in production or local dev
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+    ports:
+      - "8090:8090"
+    networks:
+      - iwa-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8090/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

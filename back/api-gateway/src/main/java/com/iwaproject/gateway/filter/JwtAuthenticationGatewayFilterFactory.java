@@ -1,5 +1,7 @@
 package com.iwaproject.gateway.filter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -12,18 +14,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
  * Gateway filter pour valider les JWT tokens
+ * Décode le JWT localement sans appeler Keycloak (évite les problèmes de réseau Docker)
  */
 @Component
 @Slf4j
 public class JwtAuthenticationGatewayFilterFactory 
         extends AbstractGatewayFilterFactory<JwtAuthenticationGatewayFilterFactory.Config> {
 
+    private final ObjectMapper objectMapper;
+
     public JwtAuthenticationGatewayFilterFactory() {
         super(Config.class);
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -31,7 +38,6 @@ public class JwtAuthenticationGatewayFilterFactory
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             
-            // Extract Authorization header
             String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
             
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -41,61 +47,80 @@ public class JwtAuthenticationGatewayFilterFactory
             
             String token = authHeader.substring(7);
             
-            // Validate token
-            if (!isValidToken(token)) {
-                log.warn("Invalid JWT token for path: {}", request.getPath());
-                return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
+            try {
+                // Décoder le JWT pour extraire les claims
+                JsonNode jwtClaims = decodeJwtPayload(token);
+                
+                // Vérifier l'expiration
+                long exp = jwtClaims.path("exp").asLong();
+                long now = System.currentTimeMillis() / 1000;
+                if (exp < now) {
+                    log.warn("Token expired: exp={}, now={}", exp, now);
+                    return onError(exchange, "Token expired", HttpStatus.UNAUTHORIZED);
+                }
+                
+                // Extraire les informations utilisateur
+                String userId = jwtClaims.path("sub").asText();
+                String username = jwtClaims.path("preferred_username").asText();
+                String email = jwtClaims.path("email").asText();
+                String roles = getRolesAsString(jwtClaims);
+                
+                log.info("JWT validated - sub: {}, username: {}, exp: {}", userId, username, exp);
+                
+                // Ajouter les claims en tant que headers pour les microservices
+                ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
+                        .header("X-User-Id", userId)
+                        .header("X-User-Username", username)
+                        .header("X-User-Email", email)
+                        .header("X-User-Roles", roles)
+                        .build();
+                
+                log.info("Added headers - X-User-Id: {}, X-User-Username: {}", userId, username);
+                
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                
+            } catch (Exception e) {
+                log.error("Token validation failed: {}", e.getMessage());
+                return onError(exchange, "Invalid token: " + e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
-            
-            log.debug("Valid JWT token for path: {}", request.getPath());
-            
-            // Continue with the request
-            return chain.filter(exchange);
         };
     }
 
     /**
-     * Validate JWT token
-     * Basic validation: check structure and expiration
+     * Décode le payload du JWT (partie centrale en base64)
      */
-    private boolean isValidToken(String token) {
-        try {
-            // Split token into parts
-            String[] parts = token.split("\\.");
-            if (parts.length != 3) {
-                log.warn("Invalid JWT structure");
-                return false;
-            }
-            
-            // Decode payload (second part)
-            String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-            
-            // Check if token contains required claims
-            if (!payload.contains("\"sub\"") || !payload.contains("\"exp\"")) {
-                log.warn("Missing required claims in JWT");
-                return false;
-            }
-            
-            // Extract expiration time
-            String expStr = payload.replaceAll(".*\"exp\":(\\d+).*", "$1");
-            long exp = Long.parseLong(expStr);
-            long now = System.currentTimeMillis() / 1000;
-            
-            if (exp < now) {
-                log.warn("JWT token has expired");
-                return false;
-            }
-            
-            return true;
-        } catch (Exception e) {
-            log.error("Error validating JWT token", e);
-            return false;
+    private JsonNode decodeJwtPayload(String token) throws Exception {
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid JWT format - expected 3 parts, got " + parts.length);
         }
+        
+        // Décoder la partie payload (index 1)
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        log.debug("Decoded JWT payload: {}", payload);
+        return objectMapper.readTree(payload);
     }
 
     /**
-     * Handle errors
+     * Extrait les rôles du token JWT décodé
      */
+    private String getRolesAsString(JsonNode claims) {
+        try {
+            JsonNode realmAccess = claims.path("realm_access");
+            if (realmAccess.has("roles")) {
+                StringBuilder roles = new StringBuilder();
+                realmAccess.get("roles").forEach(role -> {
+                    if (roles.length() > 0) roles.append(",");
+                    roles.append(role.asText());
+                });
+                return roles.toString();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract roles from token", e);
+        }
+        return "";
+    }
+
     private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
@@ -104,13 +129,12 @@ public class JwtAuthenticationGatewayFilterFactory
         String errorMessage = String.format("{\"error\":\"%s\",\"message\":\"%s\"}", 
                 status.getReasonPhrase(), message);
         
-        return response.writeWith(Mono.just(response.bufferFactory().wrap(errorMessage.getBytes())));
+        byte[] bytes = errorMessage.getBytes(StandardCharsets.UTF_8);
+        return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
     }
 
     @Data
     public static class Config {
-        // Configuration properties if needed
-        private boolean validateExpiration = true;
-        private boolean validateSignature = false; // Can be enabled with proper key configuration
+        // Configuration optionnelle si besoin
     }
 }

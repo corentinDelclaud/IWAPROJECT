@@ -1,0 +1,15 @@
+package com.iwaproject.stripe.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateAccountLinkRequest {
+    private String accountId;
+    private String redirectUrl;  // Optional: custom redirect URL for mobile deep linking
+}

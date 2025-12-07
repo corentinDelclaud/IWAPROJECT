@@ -1,16 +1,17 @@
 // file: `front/app/product/[id].tsx`
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, ActivityIndicator, Pressable, Text, Dimensions } from 'react-native';
+import { View, ScrollView, ActivityIndicator, Pressable, Text, Dimensions, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchProductById, Product } from '@/services/productService';
+import { createTransaction } from '@/services/transactionService';
 import { ImageWithFallback } from '@/components/ImageWithFallback';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProductPage() {
-    // read any route params robustly
     const params = useLocalSearchParams() as Record<string, any>;
     const rawId = params?.id ?? params?.productId ?? params?.pid;
     const router = useRouter();
@@ -18,6 +19,9 @@ export default function ProductPage() {
     const theme = Colors[colorScheme];
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
+    const [purchasing, setPurchasing] = useState(false);
+    
+    const { isAuthenticated, userInfo } = useAuth();
 
     const screenWidth = Dimensions.get('window').width - 32;
 
@@ -56,8 +60,57 @@ export default function ProductPage() {
         return () => { mounted = false; };
     }, [rawId]);
 
-    const handlePurchase = () => {
-        console.log('Purchase product:', product?.id);
+    const handlePurchase = async (directRequest: boolean) => {
+        if (!product) return;
+
+        if (!isAuthenticated) {
+            Alert.alert(
+                'Connexion requise',
+                'Vous devez être connecté pour acheter un service.',
+                [
+                    { text: 'Annuler', style: 'cancel' },
+                    { text: 'Se connecter', onPress: () => router.push('/login') },
+                ]
+            );
+            return;
+        }
+
+        setPurchasing(true);
+        try {
+            console.log('🛒 Creating transaction for product:', product.id);
+            const transaction = await createTransaction({
+                serviceId: product.id,
+                directRequest: directRequest,
+            });
+            
+            console.log('✅ Transaction created:', transaction);
+            
+            Alert.alert(
+                'Succès',
+                directRequest 
+                    ? 'Votre demande de réservation a été envoyée au vendeur.'
+                    : 'La conversation a été créée. Vous pouvez discuter avec le vendeur.',
+                [
+                    { 
+                        text: 'Voir la conversation', 
+                        onPress: () => router.push(`/conversation/${transaction.id}` as any)
+                    },
+                ]
+            );
+        } catch (error: any) {
+            console.error('❌ Purchase error:', error);
+            
+            let errorMessage = 'Une erreur est survenue lors de la création de la transaction.';
+            if (error.message?.includes('Active transaction already exists')) {
+                errorMessage = 'Vous avez déjà une transaction en cours pour ce service.';
+            } else if (error.message?.includes('not available')) {
+                errorMessage = 'Ce service n\'est plus disponible.';
+            }
+            
+            Alert.alert('Erreur', errorMessage);
+        } finally {
+            setPurchasing(false);
+        }
     };
 
     if (loading) {
@@ -147,7 +200,7 @@ export default function ProductPage() {
                 </View>
 
                 <Pressable
-                    onPress={handlePurchase}
+                    onPress={() => handlePurchase(true)}
                     style={{
                         backgroundColor: '#6d28d9',
                         paddingVertical: 16,
