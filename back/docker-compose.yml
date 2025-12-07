@@ -325,6 +325,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       STRIPE_SERVICE_URL: http://stripe-service:8090
+      # Kafka configuration
+      SPRING_KAFKA_ENABLED: "true"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_LOGS: logs-catalog-service
     ports:
       - "8083:8083"
     networks:
@@ -333,6 +337,8 @@ services:
       postgres-catalog:
         condition: service_healthy
       stripe-service:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:

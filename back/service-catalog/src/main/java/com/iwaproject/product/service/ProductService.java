@@ -4,12 +4,14 @@ import com.iwaproject.product.dto.CreateProductRequest;
 import com.iwaproject.product.dto.ProductDTO;
 import com.iwaproject.product.dto.stripe.StripeProductRequest;
 import com.iwaproject.product.dto.stripe.StripeProductResponse;
+import com.iwaproject.product.kafka.producer.LogProducer;
 import com.iwaproject.product.model.Game;
 import com.iwaproject.product.model.Product;
 import com.iwaproject.product.model.ServiceType;
 import com.iwaproject.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,9 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final RestTemplate restTemplate;
+    
+    @Autowired(required = false)
+    private LogProducer logProducer;
     
     @Value("${stripe.service.url}")
     private String stripeServiceUrl;
@@ -126,6 +131,17 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created locally with id: {}", savedProduct.getIdService());
+        
+        // Send log to Kafka
+        if (logProducer != null) {
+            logProducer.sendLog("INFO", 
+                String.format("Product created: id=%s, game=%s, serviceType=%s, price=%.2f, provider=%s", 
+                    savedProduct.getIdService(), 
+                    savedProduct.getGame(), 
+                    savedProduct.getServiceType(), 
+                    savedProduct.getPrice(),
+                    savedProduct.getIdProvider()));
+        }
         
         return ProductDTO.fromEntity(savedProduct);
     }

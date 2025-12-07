@@ -75,7 +75,7 @@ Une application mobile complète de marketplace construite avec React Native (Ex
 - **Logging Service** (8087) : Centralisation des logs via Kafka
 - **Keycloak** (8085) : Serveur d'identité (IAM)
 - **Kafka** (9092/9093) : Message broker pour la collecte de logs en temps réel
-- **Kafka UI** (8091) : Interface utilisateur pour visualiser le service Kafka
+- **Kafka UI** (8091) : Interface utilisateur pour visualiser le service Kafka (utile pour mieux voir le fonctionnement de kafka)
 
 
 ---
