@@ -31,5 +31,7 @@ public class CreateProductRequest {
 
     @NotNull(message = "L'IUUD du provider est obligatoire")
     private String idProvider;
+
+    private String stripeAccountId;
 }
 

@@ -218,12 +218,34 @@ export default function AddProductModal({
         // Vérifier que userId est défini
         if (!userId) {
             Alert.alert('Erreur', 'Veuillez patienter, chargement de votre profil en cours...');
+            // retry to fetch user
+            try {
+                const profile = await apiService.getUserProfile();
+                if (profile?.id) {
+                    // Retry submit with fetched userId
+                    return handleSubmit();
+                }
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+            }
             return;
         }
 
         if (!validateForm()) return;
 
         try {
+            // Récupérer le stripeAccountId du profil
+            const profile = await apiService.getUserProfile();
+            const stripeAccountId = profile?.stripeAccountId;
+
+            if (!stripeAccountId) {
+                Alert.alert(
+                    'Erreur',
+                    'Votre compte Stripe n\'est pas configuré. Veuillez compléter l\'onboarding Stripe avant de créer un produit.'
+                );
+                return;
+            }
+
             // Préparer les données au format attendu par le backend (CreateProductRequest)
             const productData = {
                 description: formData.description.trim(),
@@ -231,6 +253,7 @@ export default function AddProductModal({
                 game: formData.game,
                 serviceType: formData.serviceType,
                 idProvider: userId,
+                stripeAccountId: stripeAccountId, // Ajouter le stripeAccountId
             };
 
             console.log('Creating product:', productData);
@@ -240,7 +263,7 @@ export default function AddProductModal({
 
             if (createdProduct) {
                 console.log('Product created successfully:', createdProduct);
-                Alert.alert('Succès', 'Votre produit a été créé avec succès !');
+                Alert.alert('Succès', 'Votre produit a été créé avec succès dans votre catalogue et sur Stripe !');
                 resetForm();
                 onClose();
                 onProductAdded();

@@ -17,6 +17,11 @@ public class ProductDTO {
     private Boolean unique;
     private Boolean isAvailable;
     private String idProvider;
+    
+    // Stripe integration fields
+    private String stripeProductId;
+    private String stripePriceId;
+    private String stripeAccountId;
 
     // Constructeur à partir de l'entité
     public static ProductDTO fromEntity(Product product) {
@@ -28,7 +33,10 @@ public class ProductDTO {
             product.getPrice(),
             product.getUnique(),
             product.getIsAvailable(),
-            product.getIdProvider()
+            product.getIdProvider(),
+            product.getStripeProductId(),
+            product.getStripePriceId(),
+            product.getStripeAccountId()
         );
     }
 }
