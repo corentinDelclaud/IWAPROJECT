@@ -2,24 +2,34 @@ package com.iwaproject.product.service;
 
 import com.iwaproject.product.dto.CreateProductRequest;
 import com.iwaproject.product.dto.ProductDTO;
+import com.iwaproject.product.dto.stripe.StripeProductRequest;
+import com.iwaproject.product.dto.stripe.StripeProductResponse;
 import com.iwaproject.product.model.Game;
 import com.iwaproject.product.model.Product;
 import com.iwaproject.product.model.ServiceType;
 import com.iwaproject.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final RestTemplate restTemplate;
+    
+    @Value("${stripe.service.url}")
+    private String stripeServiceUrl;
 
     // Récupérer tous les services
     public List<ProductDTO> getAllProducts() {
@@ -72,6 +82,33 @@ public class ProductService {
     // Créer un nouveau service
     @Transactional
     public ProductDTO createProduct(CreateProductRequest request) {
+        log.info("Creating product for provider: {}", request.getIdProvider());
+        
+        // 1. Récupérer le stripeAccountId du provider
+        // Note: Pour l'instant, on suppose qu'il est fourni dans la requête
+        // Dans une version future, on pourrait appeler user-microservice pour le récupérer
+        String stripeAccountId = request.getStripeAccountId();
+        
+        if (stripeAccountId == null || stripeAccountId.isEmpty()) {
+            log.error("Provider {} has no Stripe account", request.getIdProvider());
+            throw new RuntimeException("Provider must have a Stripe account to create products");
+        }
+        
+        // 2. Créer le produit dans Stripe
+        StripeProductResponse stripeProduct;
+        try {
+            stripeProduct = createStripeProduct(
+                request.getDescription(),
+                request.getPrice(),
+                stripeAccountId
+            );
+            log.info("Stripe product created with priceId: {}", stripeProduct.getPriceId());
+        } catch (RestClientException e) {
+            log.error("Failed to create product in Stripe", e);
+            throw new RuntimeException("Cannot create product: Stripe error - " + e.getMessage(), e);
+        }
+        
+        // 3. Créer le produit local avec les IDs Stripe
         Product product = new Product();
         product.setGame(request.getGame());
         product.setServiceType(request.getServiceType());
@@ -80,9 +117,34 @@ public class ProductService {
         product.setUnique(request.getUnique());
         product.setIsAvailable(request.getIsAvailable());
         product.setIdProvider(request.getIdProvider());
+        
+        // Ajouter les IDs Stripe
+        product.setStripePriceId(stripeProduct.getPriceId());
+        product.setStripeAccountId(stripeAccountId);
+        // Note: productId n'est pas retourné par l'endpoint actuel de stripe-service
+        // On pourrait le stocker si stripe-service est modifié pour le retourner
 
         Product savedProduct = productRepository.save(product);
+        log.info("Product created locally with id: {}", savedProduct.getIdService());
+        
         return ProductDTO.fromEntity(savedProduct);
+    }
+    
+    /**
+     * Appel au stripe-service pour créer un produit Stripe
+     */
+    private StripeProductResponse createStripeProduct(String description, Float price, String accountId) {
+        String url = stripeServiceUrl + "/api/stripe/product";
+        
+        StripeProductRequest request = new StripeProductRequest();
+        request.setProductName(description); // On utilise la description comme nom
+        request.setProductDescription(description);
+        request.setProductPrice(Math.round(price * 100)); // Convertir en centimes
+        request.setAccountId(accountId);
+        
+        log.debug("Calling Stripe API: {} with accountId: {}", url, accountId);
+        
+        return restTemplate.postForObject(url, request, StripeProductResponse.class);
     }
 
     // Mettre à jour un service

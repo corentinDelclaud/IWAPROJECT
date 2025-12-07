@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -11,9 +11,12 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createProduct } from '@/services/productService';
+import { apiService } from '@/services/api';
+import { StripeOnboardingModal } from './StripeOnboardingModal';
 
 interface AddProductModalProps {
     visible: boolean;
@@ -59,6 +62,128 @@ export default function AddProductModal({
 
     const [showGamePicker, setShowGamePicker] = useState(false);
     const [showServiceTypePicker, setShowServiceTypePicker] = useState(false);
+    const [stripeModalVisible, setStripeModalVisible] = useState(false);
+    const [stripeOnboardingUrl, setStripeOnboardingUrl] = useState<string | null>(null);
+    const [isCheckingStripe, setIsCheckingStripe] = useState(false);
+    const [stripeCheckDone, setStripeCheckDone] = useState(false);
+    const [hasOnboardingUrl, setHasOnboardingUrl] = useState(false); // Pour savoir si on a déjà un lien d'onboarding
+
+    // Vérifier le compte Stripe dès que le modal devient visible
+    useEffect(() => {
+        if (visible && !stripeCheckDone && !isCheckingStripe) {
+            checkStripeAccount();
+        }
+        // Reset quand le modal se ferme
+        if (!visible) {
+            setStripeCheckDone(false);
+            setHasOnboardingUrl(false); // Reset aussi le flag du lien
+        }
+    }, [visible]);
+
+    const checkStripeAccount = async () => {
+        if (!userId) {
+            Alert.alert('Erreur', 'Veuillez patienter, chargement de votre profil en cours...');
+            onClose();
+            return;
+        }
+
+        setIsCheckingStripe(true);
+
+        try {
+            const profile = await apiService.getUserProfile();
+            const stripeAccountId = profile?.stripeAccountId;
+
+            const fetchOnboardingLink = async (accountId: string) => {
+                try {
+                    const resp = await apiService.createStripeAccountLink(accountId);
+                    const url = resp?.url;
+                    if (url) {
+                        setStripeOnboardingUrl(url);
+                        setHasOnboardingUrl(true); // Marquer qu'on a un lien
+                        // Attendre un peu avant d'ouvrir la modal Stripe pour que le modal produit se ferme d'abord
+                        setTimeout(() => {
+                            setStripeModalVisible(true);
+                        }, 100);
+                    } else {
+                        Alert.alert('Erreur', "Impossible d'obtenir le lien d'onboarding Stripe.");
+                    }
+                } catch (err) {
+                    console.error('Failed to create account link:', err);
+                    Alert.alert('Erreur', "Impossible de créer le lien d'onboarding Stripe.");
+                } finally {
+                    setIsCheckingStripe(false);
+                }
+            };
+
+            if (!stripeAccountId) {
+                // Si on a déjà un lien d'onboarding, on réouvre juste la modal
+                if (hasOnboardingUrl && stripeOnboardingUrl) {
+                    setIsCheckingStripe(false);
+                    setTimeout(() => {
+                        setStripeModalVisible(true);
+                    }, 100);
+                    return;
+                }
+
+                // Proposer de créer un compte Stripe
+                setIsCheckingStripe(false);
+                Alert.alert(
+                    'Compte Stripe manquant',
+                    "Votre compte Stripe n'est pas encore connecté. Voulez-vous créer un compte lié et démarrer l'onboarding ?",
+                    [
+                        { text: 'Annuler', style: 'cancel' },
+                        {
+                            text: "Créer et connecter",
+                            onPress: async () => {
+                                try {
+                                    if (!profile?.email) {
+                                        Alert.alert('Erreur', "Adresse e-mail manquante pour créer le compte Stripe.");
+                                        return;
+                                    }
+                                    const createResp = await apiService.createConnectAccount(profile.email);
+                                    const newAccountId = createResp?.accountId;
+                                    if (newAccountId) {
+                                        await fetchOnboardingLink(newAccountId);
+                                    } else {
+                                        Alert.alert('Erreur', "Impossible de créer le compte Stripe.");
+                                    }
+                                } catch (err) {
+                                    console.error('Failed to create connect account:', err);
+                                    Alert.alert('Erreur', "Impossible de créer le compte Stripe. Réessayez plus tard.");
+                                }
+                            },
+                        },
+                    ]
+                );
+                return;
+            }
+
+            // Vérifier le statut du compte
+            const status = await apiService.getStripeAccountStatus(stripeAccountId);
+            if (!status || !(status.payoutsEnabled && status.chargesEnabled && status.detailsSubmitted)) {
+                // Si on a déjà un lien d'onboarding, on réouvre juste la modal
+                if (hasOnboardingUrl && stripeOnboardingUrl) {
+                    setIsCheckingStripe(false);
+                    setTimeout(() => {
+                        setStripeModalVisible(true);
+                    }, 100);
+                    return;
+                }
+                
+                await fetchOnboardingLink(stripeAccountId);
+                return;
+            }
+
+            // Compte Stripe OK, on peut continuer avec le formulaire
+            setStripeCheckDone(true);
+        } catch (err) {
+            console.error('Failed to verify Stripe account status:', err);
+            Alert.alert('Erreur', "Impossible de vérifier l'état de votre compte Stripe. Réessayez ultérieurement.");
+            onClose();
+        } finally {
+            setIsCheckingStripe(false);
+        }
+    };
 
     const resetForm = () => {
         setFormData({
@@ -93,12 +218,34 @@ export default function AddProductModal({
         // Vérifier que userId est défini
         if (!userId) {
             Alert.alert('Erreur', 'Veuillez patienter, chargement de votre profil en cours...');
+            // retry to fetch user
+            try {
+                const profile = await apiService.getUserProfile();
+                if (profile?.id) {
+                    // Retry submit with fetched userId
+                    return handleSubmit();
+                }
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+            }
             return;
         }
 
         if (!validateForm()) return;
 
         try {
+            // Récupérer le stripeAccountId du profil
+            const profile = await apiService.getUserProfile();
+            const stripeAccountId = profile?.stripeAccountId;
+
+            if (!stripeAccountId) {
+                Alert.alert(
+                    'Erreur',
+                    'Votre compte Stripe n\'est pas configuré. Veuillez compléter l\'onboarding Stripe avant de créer un produit.'
+                );
+                return;
+            }
+
             // Préparer les données au format attendu par le backend (CreateProductRequest)
             const productData = {
                 description: formData.description.trim(),
@@ -106,6 +253,7 @@ export default function AddProductModal({
                 game: formData.game,
                 serviceType: formData.serviceType,
                 idProvider: userId,
+                stripeAccountId: stripeAccountId, // Ajouter le stripeAccountId
             };
 
             console.log('Creating product:', productData);
@@ -115,7 +263,7 @@ export default function AddProductModal({
 
             if (createdProduct) {
                 console.log('Product created successfully:', createdProduct);
-                Alert.alert('Succès', 'Votre produit a été créé avec succès !');
+                Alert.alert('Succès', 'Votre produit a été créé avec succès dans votre catalogue et sur Stripe !');
                 resetForm();
                 onClose();
                 onProductAdded();
@@ -137,23 +285,30 @@ export default function AddProductModal({
     };
 
     return (
-        <Modal
-            visible={visible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={onClose}
-        >
-            <KeyboardAvoidingView
+        <>
+            <Modal
+                visible={visible && stripeCheckDone}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={onClose}
+            >
+                <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.modalOverlay}
             >
-                <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+                <LinearGradient
+                    colors={["#0f172c", "#401c87", "#1e293b"]}
+                    locations={[0, 0.5, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.modalContainer}
+                >
                     <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: theme.text }]}>
-                            Nouveau Produit
+                        <Text style={styles.modalTitle}>
+                            ✨ Nouveau Produit
                         </Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Text style={[styles.closeButtonText, { color: theme.text }]}>✕</Text>
+                            <Text style={styles.closeButtonText}>×</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -161,19 +316,15 @@ export default function AddProductModal({
 
                         {/* Description */}
                         <View style={styles.fieldContainer}>
-                            <Text style={[styles.label, { color: theme.text }]}>
+                            <Text style={styles.label}>
                                 Description <Text style={styles.required}>*</Text>
                             </Text>
                             <TextInput
-                                style={[styles.input, styles.textArea, {
-                                    color: theme.text,
-                                    backgroundColor: theme.slateCard,
-                                    borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb'
-                                }]}
+                                style={[styles.input, styles.textArea]}
                                 value={formData.description}
                                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                                 placeholder="Décrivez votre service en détail..."
-                                placeholderTextColor={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                placeholderTextColor="#9ca3af"
                                 multiline
                                 numberOfLines={4}
                                 textAlignVertical="top"
@@ -182,19 +333,15 @@ export default function AddProductModal({
 
                         {/* Prix */}
                         <View style={styles.fieldContainer}>
-                            <Text style={[styles.label, { color: theme.text }]}>
+                            <Text style={styles.label}>
                                 Prix (€) <Text style={styles.required}>*</Text>
                             </Text>
                             <TextInput
-                                style={[styles.input, {
-                                    color: theme.text,
-                                    backgroundColor: theme.slateCard,
-                                    borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb'
-                                }]}
+                                style={styles.input}
                                 value={formData.price}
                                 onChangeText={(text) => setFormData({ ...formData, price: text })}
                                 placeholder="Ex: 30.00"
-                                placeholderTextColor={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                placeholderTextColor="#9ca3af"
                                 keyboardType="decimal-pad"
                             />
                         </View>
@@ -298,32 +445,46 @@ export default function AddProductModal({
                         {/* Boutons */}
                         <View style={styles.buttonContainer}>
                             <TouchableOpacity
-                                style={[styles.button, styles.cancelButton, { backgroundColor: theme.slateCard }]}
+                                style={[styles.button, styles.cancelButton]}
                                 onPress={() => {
                                     resetForm();
                                     onClose();
                                 }}
                             >
-                                <Text style={[styles.buttonText, { color: theme.text }]}>Annuler</Text>
+                                <Text style={[styles.buttonText, { color: '#ECEDEE' }]}>Annuler</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={[
                                     styles.button,
                                     styles.submitButton,
-                                    { backgroundColor: !userId ? '#6b7280' : theme.tint }
+                                    { backgroundColor: !userId ? '#6b7280' : theme.purple }
                                 ]}
                                 onPress={handleSubmit}
                             >
                                 <Text style={[styles.buttonText, { color: '#fff' }]}>
-                                    {'Créer'}
+                                    ✨ Créer
                                 </Text>
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </View>
+                </LinearGradient>
             </KeyboardAvoidingView>
-        </Modal>
+            </Modal>
+
+            <StripeOnboardingModal
+                visible={stripeModalVisible}
+                url={stripeOnboardingUrl}
+                onClose={() => setStripeModalVisible(false)}
+                onRecheck={async () => {
+                    // Fermer la modal Stripe
+                    setStripeModalVisible(false);
+                    // Relancer la vérification du compte
+                    setStripeCheckDone(false);
+                    await checkStripeAccount();
+                }}
+            />
+        </>
     );
 }
 
@@ -331,13 +492,15 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(15, 23, 44, 0.95)',
     },
     modalContainer: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         maxHeight: '90%',
         paddingBottom: 20,
+        borderTopWidth: 2,
+        borderTopColor: 'rgba(139, 92, 246, 0.3)',
     },
     modalHeader: {
         flexDirection: 'row',
@@ -345,21 +508,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        borderBottomColor: 'rgba(139, 92, 246, 0.2)',
     },
     modalTitle: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: '700',
+        color: '#ECEDEE',
+        letterSpacing: 0.5,
     },
     closeButton: {
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(139, 92, 246, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     closeButtonText: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: '300',
+        color: '#ECEDEE',
     },
     formContainer: {
         padding: 20,
@@ -371,15 +539,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         marginBottom: 8,
+        color: '#ECEDEE',
     },
     required: {
-        color: '#ef4444',
+        color: '#f87171',
     },
     input: {
         borderWidth: 1,
         borderRadius: 12,
         padding: 14,
         fontSize: 16,
+        backgroundColor: 'rgba(30, 41, 59, 0.4)',
+        borderColor: 'rgba(139, 92, 246, 0.3)',
+        color: '#ECEDEE',
     },
     textArea: {
         height: 100,
@@ -392,23 +564,29 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 12,
         padding: 14,
+        backgroundColor: 'rgba(30, 41, 59, 0.4)',
+        borderColor: 'rgba(139, 92, 246, 0.3)',
     },
     pickerButtonText: {
         fontSize: 16,
+        color: '#ECEDEE',
     },
     pickerOptions: {
         marginTop: 8,
         borderWidth: 1,
         borderRadius: 12,
         overflow: 'hidden',
+        backgroundColor: 'rgba(15, 23, 44, 0.95)',
+        borderColor: 'rgba(139, 92, 246, 0.3)',
     },
     pickerOption: {
         padding: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        borderBottomColor: 'rgba(139, 92, 246, 0.2)',
     },
     pickerOptionText: {
         fontSize: 16,
+        color: '#ECEDEE',
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -423,10 +601,16 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: 'rgba(139, 92, 246, 0.5)',
+        backgroundColor: 'rgba(30, 41, 59, 0.4)',
     },
     submitButton: {
         // backgroundColor défini dynamiquement
+        shadowColor: '#8b5cf6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
     buttonText: {
         fontSize: 16,

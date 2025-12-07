@@ -28,6 +28,9 @@ public class GatewayConfig {
 
     @Value("${services.keycloak.url:http://localhost:8080}")
     private String keycloakUrl;
+    
+        @Value("${services.stripe.url:http://localhost:8090}")
+        private String stripeServiceUrl;
 
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
@@ -171,6 +174,11 @@ public class GatewayConfig {
                         .filters(f -> f.rewritePath("/api/webhooks/(?<segment>.*)", "/api/webhooks/${segment}"))
                         .uri(userServiceUrl))
                 
+                // ==================== STRIPE SERVICE ROUTES ====================
+                .route("stripe-service", r -> r
+                        .path("/api/stripe/**")
+                        .filters(f -> f.rewritePath("/api/stripe/(?<segment>.*)", "/api/stripe/${segment}"))
+                        .uri(stripeServiceUrl))
                 // ==================== TRANSACTION SERVICE ROUTES ====================
                 .route("transaction-my", r -> r
                         .order(0)

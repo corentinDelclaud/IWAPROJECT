@@ -154,7 +154,7 @@ export default function ServicesManagementScreen() {
                             style={{
                                 flex: 1,
                                 paddingVertical: 10,
-                                paddingHorizontal: 16,
+                                paddingHorizontal: 5,
                                 borderRadius: 10,
                                 borderWidth: 1,
                                 borderColor: activeTab === tab ? 'rgba(168,85,247,0.5)' : theme.slateBorder,
