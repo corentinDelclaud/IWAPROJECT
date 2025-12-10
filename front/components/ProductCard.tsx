@@ -9,6 +9,7 @@ export type Product = {
   id: number;
   title: string;
   provider: string;
+  providerId: string;
   game: string;
   category: string;
   price: string;

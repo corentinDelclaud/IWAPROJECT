@@ -173,6 +173,13 @@ class ApiService {
     );
   }
 
+  async getPublicProfiles(userIds: string[]): Promise<UserProfile[]> {
+    return this.makeRequest<UserProfile[]>('/api/users/batch', {
+      method: 'POST',
+      body: JSON.stringify(userIds),
+    });
+  }
+
   async updateProfile(data: Partial<UserProfile>): Promise<UserProfile> {
     return this.makeRequest<UserProfile>(API_CONFIG.endpoints.profile, {
       method: 'PUT',

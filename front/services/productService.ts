@@ -4,9 +4,10 @@
 import { Platform } from 'react-native';
 import { MOCK_PRODUCTS } from './mockProductData';
 import { getGameImage } from '@/utils/gameImages';
-
+import { apiService } from './api';
 // ⚠️ MODE TEST: Mettre à true pour utiliser les données mockées, false pour utiliser le backend réel
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false
+;
 
 const getBaseUrl = () => {
     if (Platform.OS === 'android') {
@@ -26,7 +27,8 @@ export interface Product {
     price: string;  // Format: "XX€" pour l'affichage
     game: string;
     category: string;
-    provider: string;
+    provider: string;  // Username du provider
+    providerId: string;  // UUID du provider
     rating: number;
     reviews: number;
     delivery: string;
@@ -76,7 +78,8 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
         price: `${backendProduct.price}€`,  // Formatage du prix avec le symbole €
         game: backendProduct.game?.toLowerCase() || 'all',
         category: backendProduct.serviceType?.toLowerCase() || 'all',
-        provider: backendProduct.providerName || `Provider ${backendProduct.idProvider}`,
+        provider: backendProduct.idProvider,  // Temporaire: UUID, sera remplacé par username
+        providerId: backendProduct.idProvider,  // UUID du provider
         rating: backendProduct.rating || 4.5,
         reviews: 127,  // Valeur par défaut - à récupérer du backend plus tard
         delivery: '24-48h',  // Temps de livraison par défaut
@@ -90,6 +93,56 @@ function mapBackendProductToFrontend(backendProduct: BackendProduct): Product {
             { label: 'Satisfaction', value: '98%' },
         ],
     };
+}
+
+/**
+ * Enrichit les produits avec les usernames des providers
+ * @param products - Liste des produits à enrichir
+ * @returns Promise<Product[]> - Liste des produits enrichis avec les usernames
+ */
+async function enrichProductsWithUsernames(products: Product[]): Promise<Product[]> {
+    if (products.length === 0) {
+        return products;
+    }
+
+    try {
+        // Extraire tous les provider IDs uniques
+        const providerIds = [...new Set(products.map(p => p.providerId).filter(id => id))];
+
+        if (providerIds.length === 0) {
+            return products;
+        }
+
+        console.log(`🔍 Fetching usernames for ${providerIds.length} providers...`);
+
+        // Récupérer tous les profils en une seule requête
+        const userProfiles = await apiService.getPublicProfiles(providerIds);
+
+        // Créer une Map pour un accès rapide par ID
+        const profilesMap = new Map(userProfiles.map(profile => [profile.id, profile]));
+
+        console.log(`✅ Retrieved ${userProfiles.length} user profiles`);
+
+        // Mettre à jour les produits avec les usernames
+        return products.map(product => {
+            const userProfile = profilesMap.get(product.providerId);
+            if (userProfile && userProfile.username) {
+                return {
+                    ...product,
+                    provider: userProfile.username,
+                };
+            }
+            // Si le profil n'est pas trouvé, garder l'UUID (ou afficher "Utilisateur inconnu")
+            return {
+                ...product,
+                provider: 'Utilisateur inconnu',
+            };
+        });
+    } catch (error) {
+        console.error('❌ Error enriching products with usernames:', error);
+        // En cas d'erreur, retourner les produits sans modification
+        return products;
+    }
 }
 
 /**
@@ -118,7 +171,10 @@ export async function fetchProducts(): Promise<Product[]> {
         console.log(`Received ${data.length} products from backend`);
         console.log(data);
 
-        return data.map(mapBackendProductToFrontend);
+        const mappedProducts = data.map(mapBackendProductToFrontend);
+
+        // Enrichir avec les usernames
+        return await enrichProductsWithUsernames(mappedProducts);
     } catch (error) {
         console.error('Error fetching products:', error);
         // En cas d'erreur, retourne un tableau vide pour ne pas casser l'interface
@@ -169,7 +225,11 @@ export async function fetchProductById(id: number): Promise<Product | null> {
         const data: BackendProduct = await response.json();
         console.log(`✅ Received product ${id}:`, data);
 
-        return mapBackendProductToFrontend(data);
+        const mappedProduct = mapBackendProductToFrontend(data);
+
+        // Enrichir avec le username
+        const enrichedProducts = await enrichProductsWithUsernames([mappedProduct]);
+        return enrichedProducts[0] || null;
     } catch (error) {
         console.error(`❌ Error fetching product ${id}:`, error);
         return null;
@@ -264,7 +324,10 @@ export async function fetchProductsByFilters(filters: {
         const data: BackendProduct[] = await response.json();
         console.log(`Received ${data.length} filtered products`);
 
-        return data.map(mapBackendProductToFrontend);
+        const mappedProducts = data.map(mapBackendProductToFrontend);
+
+        // Enrichir avec les usernames
+        return await enrichProductsWithUsernames(mappedProducts);
     } catch (error) {
         console.error('Error fetching filtered products:', error);
         return [];
@@ -378,7 +441,10 @@ export async function fetchProductsByProvider(idProvider: string): Promise<Produ
         const data: BackendProduct[] = await response.json();
         console.log(`Received ${data.length} products for provider ${idProvider}`);
 
-        return data.map(mapBackendProductToFrontend);
+        const mappedProducts = data.map(mapBackendProductToFrontend);
+
+        // Enrichir avec les usernames
+        return await enrichProductsWithUsernames(mappedProducts);
     } catch (error) {
         console.error(`Error fetching products for provider ${idProvider}:`, error);
         return [];
